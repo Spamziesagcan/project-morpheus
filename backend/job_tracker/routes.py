@@ -35,7 +35,7 @@ def _convert_objectid_to_str(obj: Any) -> Any:
 
 @router.get("/relevant", response_model=RelevantJobsResponse)
 async def get_relevant_jobs(
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     min_match: float = Query(
         0, ge=0, le=100, description="Minimum match score percentage"
     ),

@@ -464,7 +464,7 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 p-8">
       <div>
         <h1 className="text-3xl font-bold text-black dark:text-white">
           Your Profile{fullName ? `, ${fullName}` : ""}
@@ -511,12 +511,12 @@ export default function UserProfilePage() {
               </label>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 text-foreground/40 mx-auto mb-3" />
-              <p className="text-foreground/60 mb-4">
+            <div className="border-2 border-dashed border-black/20 dark:border-white/20 rounded-lg p-8 text-center bg-white dark:bg-black">
+              <Upload className="w-12 h-12 text-black/40 dark:text-white/40 mx-auto mb-3" />
+              <p className="text-black/60 dark:text-white/60 mb-4">
                 Upload your resume (PDF format)
               </p>
-              <label className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer">
+              <label className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-sky-500 text-white shadow-[0_0_28px_rgba(56,189,248,0.8)] hover:bg-sky-400 transition-colors duration-300 cursor-pointer">
                 <Upload className="w-4 h-4" />
                 Choose File
                 <input
@@ -534,7 +534,7 @@ export default function UserProfilePage() {
           )}
 
           {resumeFile && (
-            <div className="flex items-center gap-4 p-4 bg-background border border-border rounded-lg">
+            <div className="flex items-center gap-4 p-4 bg-black/5 dark:bg-white/5 border-2 border-black/20 dark:border-white/20 rounded-xl">
               <FileText className="w-5 h-5 text-blue-500" />
               <span className="flex-1 text-sm text-foreground">
                 {resumeFile.name}
@@ -542,7 +542,7 @@ export default function UserProfilePage() {
               <button
                 onClick={handleExtractResume}
                 disabled={extracting}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-emerald-500 text-white shadow-[0_0_22px_rgba(16,185,129,0.75)] hover:bg-emerald-400 transition-colors duration-300 disabled:opacity-50 flex items-center gap-2"
               >
                 {extracting ? (
                   <>
@@ -559,7 +559,7 @@ export default function UserProfilePage() {
               <button
                 onClick={handleResumeUpload}
                 disabled={uploading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-sky-500 text-white shadow-[0_0_24px_rgba(56,189,248,0.85)] hover:bg-sky-400 transition-colors duration-300 disabled:opacity-50"
               >
                 {uploading ? "Uploading..." : "Upload"}
               </button>
@@ -575,7 +575,7 @@ export default function UserProfilePage() {
       </div>
 
       <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-black dark:text-white mb-4">
+        <h2 className="text-xl font-semibold text-foreground mb-4">
           Personal Information
         </h2>
 
@@ -649,7 +649,7 @@ export default function UserProfilePage() {
           </h2>
           <button
             onClick={() => setShowAddLink(!showAddLink)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 text-white shadow-[0_0_20px_rgba(56,189,248,0.8)] hover:bg-sky-400 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Link
@@ -695,7 +695,7 @@ export default function UserProfilePage() {
             <div className="flex gap-2">
               <button
                 onClick={addLink}
-                className="px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
+                className="px-4 py-2 rounded-lg bg-sky-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.75)] hover:bg-sky-400 transition-colors"
               >
                 Save
               </button>
@@ -704,7 +704,7 @@ export default function UserProfilePage() {
                   setShowAddLink(false);
                   setNewLink({ type: "github", value: "" });
                 }}
-                className="px-4 py-2 bg-black/10 dark:bg-white/10 border-2 border-black/20 dark:border-white/20 text-black dark:text-white rounded-lg hover:bg-black/20 dark:hover:bg-white/20 transition-all"
+                className="px-4 py-2 rounded-lg border border-slate-700 bg-transparent text-slate-100 hover:bg-slate-900/60 transition-colors"
               >
                 Cancel
               </button>
@@ -712,7 +712,7 @@ export default function UserProfilePage() {
           </div>
         )}
 
-        {links.length > 0 ? (
+            {links.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {links.map((link) => (
               <span
@@ -748,7 +748,7 @@ export default function UserProfilePage() {
           </h2>
           <button
             onClick={() => setShowAddExp(!showAddExp)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500 text-white shadow-[0_0_20px_rgba(56,189,248,0.8)] hover:bg-sky-400 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add
@@ -833,7 +833,7 @@ export default function UserProfilePage() {
             <div className="flex gap-2">
               <button
                 onClick={addExperience}
-                className="px-4 py-2 bg-white dark:bg-white text-black border-2 border-black/20 rounded-lg hover:bg-white/80 dark:hover:bg-white/90 transition-all"
+                className="px-4 py-2 rounded-lg bg-sky-500 text-white shadow-[0_0_18px_rgba(56,189,248,0.75)] hover:bg-sky-400 transition-colors"
               >
                 Save
               </button>
@@ -849,7 +849,7 @@ export default function UserProfilePage() {
                     description: "",
                   });
                 }}
-                className="px-4 py-2 bg-black/10 dark:bg-white/10 border-2 border-black/20 dark:border-white/20 text-black dark:text-white rounded-lg hover:bg-black/20 dark:hover:bg-white/20 transition-all"
+                className="px-4 py-2 rounded-lg border border-slate-700 bg-transparent text-slate-100 hover:bg-slate-900/60 transition-colors"
               >
                 Cancel
               </button>

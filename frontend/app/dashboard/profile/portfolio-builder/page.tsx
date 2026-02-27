@@ -4,9 +4,7 @@
 
 import { useState } from "react";
 import {
-  Globe,
   Share2,
-  Eye,
   ExternalLink,
   Loader2,
   Terminal,
@@ -158,9 +156,6 @@ export default function PortfolioBuilderProfilePage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-foreground rounded-lg">
-              <Globe className="w-6 h-6 text-background" />
-            </div>
             <h1 className="text-3xl font-bold text-foreground">
               Portfolio Generator
             </h1>
@@ -325,7 +320,7 @@ export default function PortfolioBuilderProfilePage() {
               <button
                 onClick={generatePortfolio}
                 disabled={loading || !selectedDesign}
-                className="flex items-center gap-2 px-8 py-4 bg-foreground text-background rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
+                className="px-8 py-4 rounded-xl bg-sky-500 text-white text-lg font-semibold shadow-[0_0_28px_rgba(56,189,248,0.85)] hover:bg-sky-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -333,10 +328,7 @@ export default function PortfolioBuilderProfilePage() {
                     Generating...
                   </>
                 ) : (
-                  <>
-                    <Eye className="w-5 h-5" />
-                    Generate Portfolio
-                  </>
+                  <>Generate Portfolio</>
                 )}
               </button>
             </div>

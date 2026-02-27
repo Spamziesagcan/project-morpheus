@@ -8,7 +8,6 @@ import { useState, useEffect } from "react";
 import {
   Upload,
   FileText,
-  Sparkles,
   X,
   Plus,
   Loader2,
@@ -401,7 +400,6 @@ export default function ResumeBuilderProfilePage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-          <Sparkles className="w-8 h-8 text-blue-500" />
           AI Resume Builder
         </h1>
         <p className="text-foreground/60 mt-1">
@@ -1024,7 +1022,7 @@ export default function ResumeBuilderProfilePage() {
           <button
             onClick={handleAnalyzeResume}
             disabled={analyzing || (skills.length === 0 && !resumeFile)}
-            className="flex items-center gap-3 px-8 py-4 bg-white dark:bg-white text-black border-2 border-black/20 text-lg font-semibold rounded-xl hover:bg-white/80 dark:hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            className="px-8 py-4 rounded-xl bg-sky-500 text-white text-lg font-semibold shadow-[0_0_30px_rgba(56,189,248,0.85)] hover:bg-sky-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {analyzing ? (
               <>
@@ -1032,10 +1030,7 @@ export default function ResumeBuilderProfilePage() {
                 Analyzing with AI...
               </>
             ) : (
-              <>
-                <Sparkles className="w-6 h-6" />
-                Generate AI Resume
-              </>
+              <>Generate AI Resume</>
             )}
           </button>
         </div>

@@ -31,4 +31,18 @@ export const API_ENDPOINTS = {
     DEPLOY: `${API_BASE_URL}/portfolio/deploy`,
     PUBLIC_DATA: (userId: string) => `${API_BASE_URL}/portfolio/${userId}/data`,
   },
+  PRESENTATION: {
+    OUTLINE: `${API_BASE_URL}/presentation/outline`,
+    GENERATE: `${API_BASE_URL}/presentation/generate`,
+    DOWNLOAD: `${API_BASE_URL}/presentation/download`,
+    HISTORY: `${API_BASE_URL}/presentation/history`,
+    HISTORY_BY_ID: (pptId: number) => `${API_BASE_URL}/presentation/history/${pptId}`,
+  },
+  CAREER: {
+    CHAT_STREAM: `${API_BASE_URL}/api/career/chat/stream`,
+    CONVERSATIONS_BY_USER: (userId: string) =>
+      `${API_BASE_URL}/api/career/conversations/${userId}`,
+    CONVERSATION_DETAIL: (userId: string, conversationId: string) =>
+      `${API_BASE_URL}/api/career/conversations/${userId}/${conversationId}`,
+  },
 } as const;

@@ -11,3 +11,4 @@ pymongo
 httpx
 PyPDF2
 jinja2
+python-pptx

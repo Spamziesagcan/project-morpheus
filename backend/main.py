@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from logger import get_logger
 from auth.router import router as auth_router
+from user_profile.routes import router as profile_router
 
 logger = get_logger(__name__)
 
@@ -36,6 +37,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(profile_router)
 
 @app.get("/")
 def home():

@@ -12,6 +12,15 @@ GEMINI_API_URL_TEMPLATE = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
 
+# Default model order per API key.
+# You can tweak these names to match the exact Gemini model IDs you have access to.
+DEFAULT_MODEL_SEQUENCE: List[str] = [
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.0-flash",
+]
+
 
 def _load_gemini_api_keys() -> List[str]:
     """
@@ -108,64 +117,73 @@ class GeminiService:
     async def generate(
         self,
         prompt: str,
-        model: str = "gemini-1.5-flash",
+        models: Optional[List[str]] = None,
         extra_payload: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Call Gemini with automatic fallback:
-        - Tries the current API key first.
-        - On 401/403/429/500/503 or network error, moves to the next key.
-        - Continues until a key succeeds or all keys fail.
+        - For each API key, tries models in order:
+          [gemini-2.5-flash, gemini-1.5-flash, gemini-2.5-pro, gemini-2.0-flash]
+          (or a custom `models` list if provided).
+        - If a model call fails with 401/403/429/500/503 or a network error,
+          it moves to the **next model for that same key**.
+        - If all models fail for a key, it moves to the **next key**.
+        - Continues until something succeeds or everything fails.
         """
         last_error: Optional[Exception] = None
         num_keys = len(self.api_keys)
+        model_sequence = models or DEFAULT_MODEL_SEQUENCE
 
         for attempt in range(num_keys):
             idx = (self._current_index + attempt) % num_keys
             api_key = self.api_keys[idx]
 
-            try:
-                resp = await self._call_gemini(
-                    api_key=api_key,
-                    prompt=prompt,
-                    model=model,
-                    extra_payload=extra_payload,
-                )
+            for model in model_sequence:
+                try:
+                    resp = await self._call_gemini(
+                        api_key=api_key,
+                        prompt=prompt,
+                        model=model,
+                        extra_payload=extra_payload,
+                    )
 
-                if resp.status_code == 200:
-                    # this key worked; update pointer and return
-                    self._current_index = idx
-                    return resp.json()
+                    if resp.status_code == 200:
+                        # this key+model worked; update pointer and return
+                        self._current_index = idx
+                        return resp.json()
 
-                if resp.status_code in {401, 403, 429, 500, 503}:
-                    # likely invalid, rate-limited or transient; try next key
+                    if resp.status_code in {401, 403, 429, 500, 503}:
+                        # likely invalid, rate-limited or transient; try next model / key
+                        logger.warning(
+                            "Gemini API key index %s, model '%s' failed with status %s. "
+                            "Trying next model/key (if available).",
+                            idx,
+                            model,
+                            resp.status_code,
+                        )
+                        last_error = RuntimeError(
+                            f"Gemini API error {resp.status_code} for model {model}: {resp.text}"
+                        )
+                        continue
+
+                    # For other status codes, raise immediately
+                    resp.raise_for_status()
+                except Exception as exc:  # network or other errors
                     logger.warning(
-                        "Gemini API key at index %s failed with status %s. "
-                        "Trying next key (if available).",
+                        "Gemini API call failed for key index %s, model '%s': %s. "
+                        "Trying next model/key.",
                         idx,
-                        resp.status_code,
+                        model,
+                        exc,
                     )
-                    last_error = RuntimeError(
-                        f"Gemini API error {resp.status_code}: {resp.text}"
-                    )
+                    last_error = exc
                     continue
 
-                # For other status codes, raise immediately
-                resp.raise_for_status()
-            except Exception as exc:  # network or other errors
-                logger.warning(
-                    "Gemini API call failed for key index %s: %s. Trying next key.",
-                    idx,
-                    exc,
-                )
-                last_error = exc
-                continue
-
-        # If we reached here, every key failed
+        # If we reached here, every key+model combination failed
         if last_error:
             raise last_error
 
-        raise RuntimeError("All Gemini API keys failed with unknown errors.")
+        raise RuntimeError("All Gemini API keys and models failed with unknown errors.")
 
 
 # Convenience singleton you can import in your routes:

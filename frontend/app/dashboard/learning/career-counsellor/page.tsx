@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image as ImageIcon,
   Info,
   Loader2,
+  Mic,
+  MicOff,
   Paperclip,
   Send,
+  Volume2,
 } from "lucide-react";
 
 import ChatMessageComponent from "@/components/ChatMessage";
@@ -30,7 +33,13 @@ export default function CareerCounsellorPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [ttsSpeaking, setTtsSpeaking] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -196,6 +205,84 @@ export default function CareerCounsellorPage() {
     }
   };
 
+  // STT: record audio and send to backend for transcription
+  const startRecording = useCallback(() => {
+    if (!navigator.mediaDevices?.getUserMedia || isLoading || isTranscribing) return;
+    chunksRef.current = [];
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        recorder.ondataavailable = (e) => {
+          if (e.data.size) chunksRef.current.push(e.data);
+        };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          if (chunksRef.current.length === 0) {
+            setIsRecording(false);
+            return;
+          }
+          setIsTranscribing(true);
+          try {
+            const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+            const formData = new FormData();
+            formData.append("audio", blob, "recording.webm");
+            const res = await fetch(API_ENDPOINTS.CAREER.SPEECH_TO_TEXT, {
+              method: "POST",
+              body: formData,
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              const detail = (err as { detail?: string }).detail || "Transcription failed";
+              throw new Error(detail);
+            }
+            const data = (await res.json()) as { text?: string };
+            const text = (data.text || "").trim();
+            if (text) setInputMessage((prev) => (prev ? `${prev} ${text}` : text));
+          } catch (err) {
+            const message = err instanceof Error ? err.message : "Could not transcribe.";
+            console.error("STT error:", message);
+            setInputMessage((prev) => (prev ? prev : message));
+          } finally {
+            setIsTranscribing(false);
+          }
+        };
+        recorder.start();
+        setIsRecording(true);
+      })
+      .catch(() => {
+        setIsRecording(false);
+      });
+  }, [isLoading, isTranscribing]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+    setIsRecording(false);
+  }, []);
+
+  // TTS: speak the last assistant message using browser SpeechSynthesis
+  const speakLastResponse = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    const text = lastAssistant?.content?.trim();
+    if (!text) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    speechSynthRef.current = u;
+    u.onstart = () => setTtsSpeaking(true);
+    u.onend = u.onerror = () => setTtsSpeaking(false);
+    window.speechSynthesis.speak(u);
+  }, [messages]);
+
+  const stopTts = useCallback(() => {
+    if (typeof window !== "undefined") window.speechSynthesis.cancel();
+    setTtsSpeaking(false);
+  }, []);
+
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-4">
       {/* Main Chat Area */}
@@ -302,6 +389,41 @@ export default function CareerCounsellorPage() {
                   style={{ minHeight: "48px", maxHeight: "120px" }}
                 />
                 <div className="absolute right-2 bottom-2 flex gap-1">
+                  <button
+                    type="button"
+                    onClick={ttsSpeaking ? stopTts : speakLastResponse}
+                    disabled={isLoading || !messages.some((m) => m.role === "assistant")}
+                    title={ttsSpeaking ? "Stop speaking" : "Read last response aloud (TTS)"}
+                    className="p-2 rounded-lg transition-colors disabled:opacity-50 hover:bg-background"
+                  >
+                    <Volume2
+                      className={`w-4 h-4 ${ttsSpeaking ? "text-sky-500" : "text-foreground/60"}`}
+                    />
+                  </button>
+                  {!isRecording ? (
+                    <button
+                      type="button"
+                      onClick={startRecording}
+                      disabled={isLoading || isTranscribing}
+                      title="Voice input (Speech-to-Text)"
+                      className="p-2 rounded-lg transition-colors disabled:opacity-50 hover:bg-background"
+                    >
+                      {isTranscribing ? (
+                        <Loader2 className="w-4 h-4 text-foreground/60 animate-spin" />
+                      ) : (
+                        <Mic className="w-4 h-4 text-foreground/60" />
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={stopRecording}
+                      title="Stop recording"
+                      className="p-2 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30"
+                    >
+                      <MicOff className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     disabled={isLoading}
                     className="p-2 rounded-lg transition-colors disabled:opacity-50 hover:bg-background"

@@ -161,15 +161,19 @@ export default function UserProfilePage() {
   }, []);
 
   const fetchProfileData = async () => {
-    try {
-      const token = localStorage.getItem("token");
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
 
+    try {
       const userResponse = await fetch(API_ENDPOINTS.AUTH.ME, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setFullName(userData.full_name || "");
+      } else {
+        return;
       }
 
       const response = await fetch(API_ENDPOINTS.PROFILE.GET, {
@@ -189,6 +193,7 @@ export default function UserProfilePage() {
       }
     } catch (error) {
       console.error("Failed to fetch profile data:", error);
+      showToast("Could not load profile. Check that the backend is running.", "error");
     }
   };
 

@@ -1,9 +1,12 @@
 from datetime import datetime
 import json
+import os
+import time
 import uuid
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException
+import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pymongo import MongoClient
 
@@ -20,8 +23,9 @@ from career_recommender.schema import (
 )
 from config import MONGO_DB, MONGO_URI
 from database import db as async_db
+from logger import get_logger
 
-
+logger = get_logger(__name__)
 router = APIRouter(prefix="/api/career", tags=["Career Recommender"])
 
 
@@ -367,6 +371,95 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post("/speech-to-text")
+async def speech_to_text(audio: UploadFile = File(...)) -> Dict[str, Any]:
+    """
+    Transcribe audio to text using Assembly AI (STT).
+    Accepts audio file (e.g. webm, mp3, wav). Returns {"text": "..."}.
+    """
+    api_key = os.getenv("ASSEMBLYAI_API_KEY")
+    if not api_key:
+        logger.warning("Speech-to-text called but ASSEMBLYAI_API_KEY is not set")
+        raise HTTPException(
+            status_code=503,
+            detail="Speech-to-text is not configured (missing ASSEMBLYAI_API_KEY)",
+        )
+
+    try:
+        content = await audio.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read audio: {e}") from e
+
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+
+    headers = {"authorization": api_key, "content-type": "application/octet-stream"}
+
+    # Upload to Assembly AI (binary body, no Content-Type for body - httpx sends octet-stream when content=bytes)
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        upload_resp = await client.post(
+            "https://api.assemblyai.com/v2/upload",
+            headers=headers,
+            content=content,
+        )
+    if upload_resp.status_code != 200:
+        err_msg = upload_resp.text or f"status {upload_resp.status_code}"
+        logger.warning("Assembly AI upload failed: %s", err_msg)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Assembly AI upload failed: {err_msg}",
+        )
+
+    try:
+        upload_url = upload_resp.json()["upload_url"]
+    except (KeyError, ValueError):
+        raise HTTPException(status_code=502, detail="Invalid upload response from Assembly AI")
+
+    # Request transcription (speech_models required by Assembly AI API)
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        transcript_resp = await client.post(
+            "https://api.assemblyai.com/v2/transcript",
+            headers=headers,
+            json={
+                "audio_url": upload_url,
+                "speech_models": ["universal-2"],
+            },
+        )
+    if transcript_resp.status_code not in (200, 201):
+        err_msg = transcript_resp.text or f"status {transcript_resp.status_code}"
+        logger.warning("Assembly AI transcript request failed: %s", err_msg)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Assembly AI transcript request failed: {err_msg}",
+        )
+
+    try:
+        transcript_id = transcript_resp.json()["id"]
+    except (KeyError, ValueError):
+        raise HTTPException(status_code=502, detail="Invalid transcript response from Assembly AI")
+
+    # Poll until completed (or error)
+    poll_url = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
+    for _ in range(60):
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            poll_resp = await client.get(poll_url, headers=headers)
+        if poll_resp.status_code != 200:
+            logger.warning("Assembly AI polling failed: %s", poll_resp.text)
+            raise HTTPException(status_code=502, detail="Assembly AI polling failed")
+        data = poll_resp.json()
+        status = data.get("status")
+        if status == "completed":
+            return {"text": (data.get("text") or "").strip() or "(no speech detected)"}
+        if status == "error":
+            raise HTTPException(
+                status_code=502,
+                detail=data.get("error", "Assembly AI transcription failed"),
+            )
+        time.sleep(1)
+
+    raise HTTPException(status_code=504, detail="Transcription timed out")
 
 
 @router.get("/conversations/", response_model=ConversationListResponse)

@@ -47,23 +47,24 @@ function StatCard({ title, value, icon: Icon, trend, color = "text-foreground" }
 export default function DashboardHome() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
+      if (typeof window === "undefined") return;
       const token = localStorage.getItem("token");
       if (!token) {
         router.push("/auth/login");
         return;
       }
 
+      setFetchError(null);
       try {
         const res = await fetch(API_ENDPOINTS.AUTH.ME, {
-          headers: { 
-            "Authorization": `Bearer ${token}` 
-          },
+          headers: { "Authorization": `Bearer ${token}` },
         });
-        
+
         if (res.ok) {
           const userData = await res.json() as User;
           setUser(userData);
@@ -72,7 +73,7 @@ export default function DashboardHome() {
           router.push("/auth/login");
         }
       } catch {
-        console.error("Failed to fetch user");
+        setFetchError("Could not reach the server. Check that the backend is running and try again.");
       } finally {
         setLoading(false);
       }
@@ -85,6 +86,22 @@ export default function DashboardHome() {
     return (
       <div className="h-full flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-foreground/60" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+        <AlertTriangle className="w-12 h-12 text-amber-500" />
+        <p className="text-foreground/80 text-center max-w-md">{fetchError}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground"
+        >
+          Retry
+        </button>
       </div>
     );
   }

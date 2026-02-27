@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
   },
   CAREER: {
     CHAT_STREAM: `${API_BASE_URL}/api/career/chat/stream`,
+    SPEECH_TO_TEXT: `${API_BASE_URL}/api/career/speech-to-text`,
     CONVERSATIONS_BY_USER: (userId: string) =>
       `${API_BASE_URL}/api/career/conversations/${userId}`,
     CONVERSATION_DETAIL: (userId: string, conversationId: string) =>

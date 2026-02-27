@@ -1,0 +1,178 @@
+{
+  "interviews": [
+    {
+      "interviewId": "int_1772191194.398237_18ad6d",
+      "assistantId": "5cb8633a-eb9f-4242-8faa-559e076fa27a",
+      "candidateName": "Kavish Shah",
+      "candidateEmail": "kavish17shah2509@gmail.com",
+      "status": "completed",
+      "createdAt": "2026-02-27T16:49:54.398535",
+      "completedAt": "2026-02-27T16:51:58.349333",
+      "reportFile": "report_2026-02-27_22-21-58.json",
+      "reportData": {
+        "candidateInfo": {
+          "name": "Kavish Shah",
+          "email": "kavish17shah2509@gmail.com"
+        },
+        "interviewStatus": "partial",
+        "questionsAnswered": 2,
+        "totalQuestions": 10,
+        "overallScore": 30,
+        "recommendation": "Maybe",
+        "detailedReport": "Kavish Shah demonstrated a basic understanding of programming languages and teamwork experience. However, his responses lacked clarity and detail, which may hinder effective communication in a technical setting. Improvement in articulation and elaboration on experiences would enhance his suitability for the role.",
+        "summary": {
+          "strengths": [
+            "Familiarity with JavaScript",
+            "Experience in team projects",
+            "Background in medical internships"
+          ],
+          "painPoints": [
+            "Lack of clarity in responses",
+            "Limited elaboration on experiences"
+          ],
+          "areasToImprove": [
+            "Communication skills",
+            "Providing detailed examples"
+          ]
+        },
+        "evaluations": [
+          {
+            "questionNumber": 1,
+            "question": "What programming languages are you most comfortable with? And can you describe a project where you used 1 of them?",
+            "answer": "Kavish mentioned being comfortable with JavaScript and having experience in medical internships, but did not provide a specific project example.",
+            "difficulty": "easy",
+            "category": "technical",
+            "score": 4,
+            "maxScore": 10,
+            "feedback": "While he identified a programming language, the lack of a specific project example and clarity in his explanation limited the effectiveness of his answer."
+          },
+          {
+            "questionNumber": 2,
+            "question": "Can you tell me about a time when you had to work as part of a team to complete a project? What was your role?",
+            "answer": "Kavish briefly mentioned working at Cisco and trying to put his team forward but did not provide specific details about his role or the project.",
+            "difficulty": "easy",
+            "category": "behavioral",
+            "score": 3,
+            "maxScore": 10,
+            "feedback": "The answer lacked detail and clarity, making it difficult to assess his contributions and the context of the teamwork experience."
+          }
+        ]
+      }
+    },
+    {
+      "interviewId": "int_1772191747.627462_76d7db",
+      "assistantId": "cf0bddac-f16c-45b9-91c8-f90e301ac29f",
+      "candidateName": "Kavish Shah",
+      "candidateEmail": "kavish17shah2509@gmail.com",
+      "status": "pending",
+      "createdAt": "2026-02-27T16:59:07.629479",
+      "completedAt": null,
+      "reportFile": null,
+      "reportData": null
+    },
+    {
+      "interviewId": "int_1772193547.018142_9c90a0",
+      "assistantId": "bbf5c7d2-0a74-4977-aabd-2eabc368dcaa",
+      "candidateName": "Software Engineer",
+      "candidateEmail": "kavish17shah2509@gmail.com",
+      "status": "completed",
+      "createdAt": "2026-02-27T17:29:07.018375",
+      "completedAt": "2026-02-27T17:30:23.170934",
+      "reportFile": "report_2026-02-27_23-00-23.json",
+      "reportData": {
+        "candidateInfo": {
+          "name": "Software Engineer",
+          "email": "kavish17shah2509@gmail.com"
+        },
+        "interviewStatus": "partial",
+        "questionsAnswered": 1,
+        "totalQuestions": 10,
+        "overallScore": 3,
+        "recommendation": "No Hire",
+        "detailedReport": "The candidate struggled to answer the first technical question, indicating a lack of foundational knowledge in TypeScript. Their communication was polite, but the inability to respond to basic questions raises concerns about their suitability for the role. More preparation in technical concepts is necessary.",
+        "summary": {
+          "strengths": [],
+          "painPoints": [
+            "Lack of knowledge in TypeScript",
+            "Inability to articulate technical concepts"
+          ],
+          "areasToImprove": [
+            "Study TypeScript fundamentals",
+            "Practice behavioral interview responses"
+          ]
+        },
+        "evaluations": [
+          {
+            "questionNumber": 1,
+            "question": "Can you explain the difference between a class and an interface in TypeScript?",
+            "answer": "I do not know different people have asked me. Sorry.",
+            "difficulty": "easy",
+            "category": "technical",
+            "score": 1,
+            "maxScore": 10,
+            "feedback": "The candidate was unable to provide a basic explanation of a fundamental concept in TypeScript, which is concerning for a software engineering position."
+          }
+        ]
+      }
+    },
+    {
+      "interviewId": "int_1772194271.646501_12397c",
+      "assistantId": "cc8ba0c0-5a85-4644-96d5-6a7beaca0c6a",
+      "candidateName": "Kavish Shah",
+      "candidateEmail": "kavish17shah2509@gmail.com",
+      "status": "completed",
+      "createdAt": "2026-02-27T17:41:11.646665",
+      "completedAt": "2026-02-27T17:43:10.893072",
+      "reportFile": "report_2026-02-27_23-13-10.json",
+      "reportData": {
+        "candidateInfo": {
+          "name": "Kavish Shah",
+          "email": "kavish17shah2509@gmail.com"
+        },
+        "interviewStatus": "partial",
+        "questionsAnswered": 2,
+        "totalQuestions": 10,
+        "overallScore": 20,
+        "recommendation": "Maybe",
+        "detailedReport": "Kavish Shah demonstrated a basic understanding of the technical concepts related to TypeScript and browser automation, but his answers lacked clarity and depth. His communication style was somewhat disjointed, making it difficult to fully assess his knowledge. While he shows potential, he needs to articulate his thoughts more clearly and provide more structured responses to be considered a strong candidate for the role.",
+        "summary": {
+          "strengths": [
+            "Familiarity with TypeScript",
+            "Good academic performance",
+            "Willingness to learn"
+          ],
+          "painPoints": [
+            "Lack of clarity in answers",
+            "Limited depth in technical explanations"
+          ],
+          "areasToImprove": [
+            "Improve communication skills",
+            "Provide more structured and detailed answers"
+          ]
+        },
+        "evaluations": [
+          {
+            "questionNumber": 1,
+            "question": "In your resume, you mentioned working with TypeScript at Senta. You explain what attracted you to using TypeScript for browser automation?",
+            "answer": "So I use play, right, for Python and the front end was creating types. So that is where I use the TypeScript.",
+            "difficulty": "easy",
+            "category": "technical",
+            "score": 4,
+            "maxScore": 10,
+            "feedback": "The candidate mentioned using TypeScript but did not clearly articulate why it was attractive for browser automation. A more detailed explanation of the benefits of TypeScript in this context would strengthen the response."
+          },
+          {
+            "questionNumber": 2,
+            "question": "You have a CGPA of 8.4210 in your b dot tech program. How has your academic experience prepared you for a role as a full stack developer?",
+            "answer": "I think academic experience is an important role which has JPs available. Beautiful job developer as it more more more more more better in the business.",
+            "difficulty": "easy",
+            "category": "behavioral",
+            "score": 3,
+            "maxScore": 10,
+            "feedback": "The answer lacked coherence and clarity. The candidate should focus on specific experiences or projects from their academic background that relate directly to full stack development."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -84,4 +84,13 @@ export const API_ENDPOINTS = {
     BULK_SEND: `${API_BASE_URL}/api/cold-mail/bulk-send`,
     SEND_EMAIL: `${API_BASE_URL}/api/cold-mail/send-email`,
   },
+  INTERVIEW: {
+    START: `${API_BASE_URL}/api/interview/start`,
+    STATUS: (interviewId: string) =>
+      `${API_BASE_URL}/api/interview/${interviewId}/status`,
+    REPORT: (interviewId: string) =>
+      `${API_BASE_URL}/api/interview/${interviewId}/report`,
+    GENERATE_REPORT: (interviewId: string) =>
+      `${API_BASE_URL}/api/interview/${interviewId}/generate-report`,
+  },
 } as const;

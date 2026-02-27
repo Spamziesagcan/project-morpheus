@@ -17,6 +17,7 @@ from job_tracker.routes import router as jobs_router
 from job_tracker.scheduler import job_scheduler
 from resume_analyzer.routes import router as resume_analyzer_router
 from flashcards.routes import router as flashcards_router
+from interview_agent.routes import router as interview_router
 
 logger = get_logger(__name__)
 
@@ -74,6 +75,9 @@ app.include_router(
 )
 app.include_router(
     flashcards_router, prefix="/api", tags=["Flashcards"]
+)
+app.include_router(
+    interview_router, prefix="/api", tags=["Interview Agent"]
 )
 
 @app.get("/")

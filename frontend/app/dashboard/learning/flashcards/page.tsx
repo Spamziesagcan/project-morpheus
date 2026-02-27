@@ -272,7 +272,7 @@ export default function FlashcardsPage() {
             <Layers className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Flashcards</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Flashcards</h1>
             <p className="text-sm text-muted-foreground">
               Upload a PDF, paste a URL, or enter text to generate flashcards.
             </p>
@@ -411,7 +411,7 @@ export default function FlashcardsPage() {
           />
           <p className="mt-1 text-xs text-muted-foreground">
             5–50 cards works best for focused sessions.
-          </p>
+        </p>
         </div>
 
         <div>
@@ -468,9 +468,9 @@ export default function FlashcardsPage() {
       return (
         <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
           No flashcards yet. Generate a set first.
-        </div>
-      );
-    }
+    </div>
+  );
+}
 
     const current = flashcards[currentIndex];
 

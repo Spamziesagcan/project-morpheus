@@ -17,3 +17,6 @@ exa-py
 apscheduler
 python-jobspy
 python-dateutil
+openai
+PyMuPDF
+aiohttp

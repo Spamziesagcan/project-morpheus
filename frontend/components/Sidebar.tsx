@@ -182,6 +182,16 @@ export function Sidebar() {
   const router = useRouter();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
+  // Determine the "best" active menu item based on the current path:
+  // pick the longest href that matches the pathname or is its prefix.
+  const activeHref =
+    menuItems
+      .map((item) => item.href)
+      .filter(
+        (href) => pathname === href || pathname.startsWith(`${href}/`)
+      )
+      .sort((a, b) => b.length - a.length)[0] || pathname;
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/auth/login");
@@ -257,7 +267,7 @@ export function Sidebar() {
                 {menuItems
                   .filter((item) => item.section === section)
                   .map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = item.href === activeHref;
                     const style = sectionStyles[item.section];
 
                     return (

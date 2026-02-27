@@ -20,6 +20,8 @@ import {
   FolderGit2,
   Loader2,
   Sparkles,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
 import { SkillAutocomplete } from "@/components/SkillAutocomplete";
@@ -141,6 +143,19 @@ export default function UserProfilePage() {
     link: "",
   });
 
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
+
   useEffect(() => {
     fetchProfileData();
   }, []);
@@ -248,14 +263,17 @@ export default function UserProfilePage() {
 
         setResumeFile(null);
 
-        alert("Resume extracted successfully! All fields have been auto-filled.");
+        showToast(
+          "Resume extracted successfully! All fields have been auto-filled.",
+          "success"
+        );
       } else {
         const error = await response.json();
-        alert(`Failed to extract: ${error.detail}`);
+        showToast(`Failed to extract: ${error.detail}`, "error");
       }
     } catch (error) {
       console.error("Failed to extract resume:", error);
-      alert("Failed to extract resume data");
+      showToast("Failed to extract resume data", "error");
     } finally {
       setExtracting(false);
     }
@@ -1133,6 +1151,31 @@ export default function UserProfilePage() {
           suggestions={INTERESTS}
         />
       </div>
+
+      {/* Bottom toast for resume operations */}
+      {toastVisible && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in-0">
+          <div
+            className={`flex items-center gap-3 px-5 py-3 rounded-lg shadow-lg text-white min-w-[260px] max-w-[90vw] ${
+              toastType === "success" ? "bg-green-600" : "bg-red-600"
+            }`}
+          >
+            {toastType === "success" ? (
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            )}
+            <p className="flex-1 text-sm font-medium">{toastMessage}</p>
+            <button
+              onClick={() => setToastVisible(false)}
+              className="flex-shrink-0 hover:opacity-80 transition-opacity"
+              aria-label="Close notification"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from logger import get_logger
 from auth.router import router as auth_router
 from user_profile.routes import router as profile_router
+from ai_resume_builder.routes import router as ai_resume_router
+from portfolio.routes import router as portfolio_router
 
 logger = get_logger(__name__)
 
@@ -38,6 +40,8 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(profile_router)
+app.include_router(ai_resume_router)
+app.include_router(portfolio_router)
 
 @app.get("/")
 def home():

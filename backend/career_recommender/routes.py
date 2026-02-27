@@ -3,35 +3,37 @@ import json
 import uuid
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
+from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 
 from auth.router import get_current_user
-from career_recommender.career_counselor import career_counselor
-from career_recommender.schema import (
-    CareerPath,
+from config import MONGO_URI, MONGO_DB
+from .schema import (
     CareerRecommendationRequest,
     CareerRecommendationResponse,
-    ChatMessage,
+    CareerPath,
     ChatRequest,
     ChatResponse,
+    ChatMessage,
     ConversationListResponse,
 )
-from config import MONGO_DB, MONGO_URI
-from database import db as async_db
+from .career_counselor import career_counselor
 
 
-router = APIRouter(prefix="/api/career", tags=["Career Recommender"])
+router = APIRouter()
 
 
-# Synchronous Mongo client for conversations (matches original design)
+# Sync MongoDB client for conversation storage
 mongo_client = MongoClient(MONGO_URI)
 db_sync = mongo_client[MONGO_DB]
 conversations_collection = db_sync["career_conversations"]
 
-# Async client reused from global `db` for user profiles
-user_profiles_collection = async_db["user_profiles"]
+# Async MongoDB client for reading user profiles
+async_mongo_client = AsyncIOMotorClient(MONGO_URI)
+db_async = async_mongo_client[MONGO_DB]
+user_profiles_collection = db_async["user_profiles"]
 
 
 @router.post("/recommend", response_model=CareerRecommendationResponse)
@@ -39,17 +41,18 @@ async def get_career_recommendations(
     request: CareerRecommendationRequest,
 ) -> CareerRecommendationResponse:
     """
-    AI Career Path Recommender - suggests suitable career paths based on user profile.
+    AI Career Path Recommender - Suggests suitable career paths based on user profile.
     Uses Tavily web scraping + Gemini AI to provide real-time career recommendations.
     """
     try:
-        from career_recommender.tavily_service import tavily_service
+        from .tavily_service import tavily_service
 
         tavily_data = await tavily_service.search_career_trends(
             skills=request.skills,
             interests=request.interests,
         )
 
+        # Build prompt for Gemini to analyze and structure the data
         prompt = f"""
 Analyze the following web-scraped job market data and user profile, then provide 3-5 personalized career recommendations.
 
@@ -84,52 +87,49 @@ Return ONLY valid JSON in this exact format:
       "growth_outlook": "string"
     }}
   ]
-}}"""
+}}
+"""
 
-        if career_counselor:
-            response_text = await career_counselor._generate_text(prompt)
+        raw = await career_counselor.gemini.generate(prompt)
 
-            import re
+        # Extract JSON substring from possibly noisy response
+        import re
 
-            json_match = re.search(r"\{[\s\S]*\}", response_text)
-            if json_match:
-                parsed_data = json.loads(json_match.group())
-                recommendations = [
-                    CareerPath(**rec)
-                    for rec in parsed_data.get("recommendations", [])
-                ]
-            else:
-                raise ValueError("Failed to parse AI response")
+        text = ""
+        try:
+            from resume_analyzer.routes import (  # type: ignore
+                _extract_text_from_gemini_response,
+            )
+
+            text = _extract_text_from_gemini_response(raw)
+        except Exception:
+            # Fallback: best-effort JSON extraction
+            text = json.dumps(raw)
+
+        json_match = re.search(r"\{[\s\S]*\}", text)
+        if json_match:
+            parsed_data = json.loads(json_match.group())
+            recommendations = [
+                CareerPath(**rec)
+                for rec in parsed_data.get("recommendations", [])
+            ]
         else:
-            recommendations: list[CareerPath] = []
-            for idx, result in enumerate(tavily_data.get("results", [])[:3], 1):
-                recommendations.append(
-                    CareerPath(
-                        career_title=result.get("title", f"Career Option {idx}"),
-                        match_score=0.8,
-                        description=result.get("content", "No description available")[
-                            :150
-                        ],
-                        required_skills=request.skills[:4],
-                        trending_industries=["Technology", "Innovation"],
-                        average_salary="Market Rate",
-                        growth_outlook="Based on current trends",
-                    )
-                )
+            raise ValueError("Failed to parse AI response for recommendations")
 
         return CareerRecommendationResponse(
             recommendations=recommendations,
             timestamp=datetime.utcnow(),
         )
-    except Exception as exc:
-        print(f"Error in career recommendations: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    except Exception as e:
+        print(f"Error in career recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/trends")
 async def get_career_trends() -> Dict[str, Any]:
     """
-    Get current career trends and in-demand skills.
+    Get some static career trends and in-demand skills.
     """
     return {
         "trending_careers": [
@@ -147,10 +147,14 @@ async def get_career_trends() -> Dict[str, Any]:
     }
 
 
+# ============= CHAT ENDPOINTS =============
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat_message(request: ChatRequest) -> ChatResponse:
     """
     Send a message and get AI counseling response.
+    Non-streaming endpoint; mostly kept for backwards compatibility.
     """
     try:
         # Get or create conversation
@@ -176,7 +180,7 @@ async def chat_message(request: ChatRequest) -> ChatResponse:
             }
             conversations_collection.insert_one(conversation_doc)
 
-        # Load user profile for context
+        # Get user profile for context from user_profiles collection
         user_profile_doc = await user_profiles_collection.find_one(
             {"user_id": request.user_id}
         )
@@ -191,6 +195,7 @@ async def chat_message(request: ChatRequest) -> ChatResponse:
                 i.get("name") if isinstance(i, dict) else i
                 for i in user_profile_doc.get("interests", [])
             ]
+
             user_profile = {
                 "skills": skills,
                 "interests": interests,
@@ -200,6 +205,7 @@ async def chat_message(request: ChatRequest) -> ChatResponse:
                 "projects": user_profile_doc.get("projects", []),
             }
 
+        # Add user message to conversation
         user_message = {
             "role": "user",
             "content": request.message,
@@ -211,9 +217,13 @@ async def chat_message(request: ChatRequest) -> ChatResponse:
 
         conversations_collection.update_one(
             {"conversation_id": conversation_doc["conversation_id"]},
-            {"$push": {"messages": user_message}, "$set": {"updated_at": datetime.utcnow()}},
+            {
+                "$push": {"messages": user_message},
+                "$set": {"updated_at": datetime.utcnow()},
+            },
         )
 
+        # Generate AI response
         ai_response_text, references = await career_counselor.generate_response(
             user_message=request.message,
             user_profile=user_profile,
@@ -233,21 +243,29 @@ async def chat_message(request: ChatRequest) -> ChatResponse:
 
         conversations_collection.update_one(
             {"conversation_id": conversation_doc["conversation_id"]},
-            {"$push": {"messages": ai_message}, "$set": {"updated_at": datetime.utcnow()}},
+            {
+                "$push": {"messages": ai_message},
+                "$set": {"updated_at": datetime.utcnow()},
+            },
         )
 
         return ChatResponse(
             conversation_id=conversation_doc["conversation_id"],
             message=ChatMessage(**ai_message),
         )
-    except Exception as exc:  # pragma: no cover - defensive
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/chat/stream")
 async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
     """
     Send a message and get streaming AI response (Server-Sent Events).
+    We currently stream as a single chunk, but keep the SSE interface
+    compatible with the Hacksync frontend.
     """
 
     async def event_generator():
@@ -258,7 +276,7 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                     {"conversation_id": request.conversation_id}
                 )
                 if not conversation_doc:
-                    yield f"data: {json.dumps({'type': 'error', 'message': 'Conversation not found'})}\n\n"
+                    yield f"data: {json.dumps({'error': 'Conversation not found'})}\n\n"
                     return
             else:
                 conversation_id = str(uuid.uuid4())
@@ -277,9 +295,14 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                 conversations_collection.insert_one(conversation_doc)
 
                 # Send conversation ID first
-                yield f"data: {json.dumps({'type': 'conversation_id', 'conversation_id': conversation_id})}\n\n"
+                yield "data: " + json.dumps(
+                    {
+                        "type": "conversation_id",
+                        "conversation_id": conversation_id,
+                    }
+                ) + "\n\n"
 
-            # Load user profile
+            # Get user profile from user_profiles collection
             user_profile_doc = await user_profiles_collection.find_one(
                 {"user_id": request.user_id}
             )
@@ -294,6 +317,7 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                     i.get("name") if isinstance(i, dict) else i
                     for i in user_profile_doc.get("interests", [])
                 ]
+
                 user_profile = {
                     "skills": skills,
                     "interests": interests,
@@ -305,6 +329,7 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                     "projects": user_profile_doc.get("projects", []),
                 }
 
+            # Add user message
             user_message = {
                 "role": "user",
                 "content": request.message,
@@ -322,6 +347,7 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                 },
             )
 
+            # Stream AI response (single chunk at the moment)
             full_response = ""
             references_sent = False
             saved_references: list[Dict[str, Any]] = []
@@ -335,13 +361,21 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                 ],
             ):
                 full_response += chunk
-                yield f"data: {json.dumps({'type': 'text', 'content': chunk})}\n\n"
 
+                # Send text chunk
+                yield "data: " + json.dumps(
+                    {"type": "text", "content": chunk}
+                ) + "\n\n"
+
+                # Send references once
                 if references and not references_sent:
                     saved_references = references
-                    yield f"data: {json.dumps({'type': 'references', 'references': references})}\n\n"
+                    yield "data: " + json.dumps(
+                        {"type": "references", "references": references}
+                    ) + "\n\n"
                     references_sent = True
 
+            # Save complete AI message to conversation
             ai_message = {
                 "role": "assistant",
                 "content": full_response,
@@ -358,14 +392,21 @@ async def chat_message_stream(request: ChatRequest) -> StreamingResponse:
                 },
             )
 
-            yield "data: {\"type\": \"done\"}\n\n"
-        except Exception as exc:  # pragma: no cover - defensive
-            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+            # Send completion signal
+            yield "data: " + json.dumps({"type": "done"}) + "\n\n"
+
+        except Exception as e:  # pragma: no cover - debug logging path
+            yield "data: " + json.dumps(
+                {"type": "error", "message": str(e)}
+            ) + "\n\n"
 
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
@@ -391,27 +432,45 @@ async def get_my_conversations(
             ).sort("updated_at", -1)
         )
 
+        # Format timestamps
         for conv in conversations:
-            conv["updated_at"] = (
-                conv.get("updated_at", datetime.utcnow()).isoformat()
-            )
-            conv["created_at"] = (
-                conv.get("created_at", datetime.utcnow()).isoformat()
-            )
+            if conv.get("updated_at"):
+                updated = conv["updated_at"]
+                conv["updated_at"] = (
+                    updated.isoformat()
+                    if hasattr(updated, "isoformat")
+                    else str(updated)
+                )
+            else:
+                conv["updated_at"] = datetime.utcnow().isoformat()
+
+            if conv.get("created_at"):
+                created = conv["created_at"]
+                conv["created_at"] = (
+                    created.isoformat()
+                    if hasattr(created, "isoformat")
+                    else str(created)
+                )
+            else:
+                conv["created_at"] = datetime.utcnow().isoformat()
 
         return ConversationListResponse(
             conversations=conversations,
             total=len(conversations),
         )
-    except Exception as exc:  # pragma: no cover - defensive
-        print(f"Error fetching conversations: {exc}")
+
+    except Exception as e:  # pragma: no cover - defensive fallback
+        print(f"Error fetching conversations: {str(e)}")
         return ConversationListResponse(conversations=[], total=0)
 
 
-@router.get("/conversations/{user_id}", response_model=ConversationListResponse)
+@router.get(
+    "/conversations/{user_id}",
+    response_model=ConversationListResponse,
+)
 async def get_user_conversations(user_id: str) -> ConversationListResponse:
     """
-    Get all conversations for a user (legacy endpoint used by frontend).
+    Get all conversations for a user (legacy endpoint used by sidebar).
     """
     try:
         conversations = list(
@@ -428,19 +487,33 @@ async def get_user_conversations(user_id: str) -> ConversationListResponse:
         )
 
         for conv in conversations:
-            conv["updated_at"] = (
-                conv.get("updated_at", datetime.utcnow()).isoformat()
-            )
-            conv["created_at"] = (
-                conv.get("created_at", datetime.utcnow()).isoformat()
-            )
+            if conv.get("updated_at"):
+                updated = conv["updated_at"]
+                conv["updated_at"] = (
+                    updated.isoformat()
+                    if hasattr(updated, "isoformat")
+                    else str(updated)
+                )
+            else:
+                conv["updated_at"] = datetime.utcnow().isoformat()
+
+            if conv.get("created_at"):
+                created = conv["created_at"]
+                conv["created_at"] = (
+                    created.isoformat()
+                    if hasattr(created, "isoformat")
+                    else str(created)
+                )
+            else:
+                conv["created_at"] = datetime.utcnow().isoformat()
 
         return ConversationListResponse(
             conversations=conversations,
             total=len(conversations),
         )
-    except Exception as exc:  # pragma: no cover - defensive
-        print(f"Error fetching conversations: {exc}")
+
+    except Exception as e:  # pragma: no cover - defensive fallback
+        print(f"Error fetching conversations: {str(e)}")
         return ConversationListResponse(conversations=[], total=0)
 
 
@@ -454,19 +527,32 @@ async def get_conversation(user_id: str, conversation_id: str) -> Dict[str, Any]
             {"conversation_id": conversation_id, "user_id": user_id},
             {"_id": 0},
         )
+
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
 
         if conversation.get("created_at"):
-            conversation["created_at"] = conversation["created_at"].isoformat()
+            created = conversation["created_at"]
+            conversation["created_at"] = (
+                created.isoformat()
+                if hasattr(created, "isoformat")
+                else str(created)
+            )
         if conversation.get("updated_at"):
-            conversation["updated_at"] = conversation["updated_at"].isoformat()
+            updated = conversation["updated_at"]
+            conversation["updated_at"] = (
+                updated.isoformat()
+                if hasattr(updated, "isoformat")
+                else str(updated)
+            )
+
         return conversation
+
     except HTTPException:
         raise
-    except Exception as exc:  # pragma: no cover - defensive
-        print(f"Error fetching conversation: {exc}")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as e:
+        print(f"Error fetching conversation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/conversations/{user_id}/{conversation_id}")
@@ -476,13 +562,20 @@ async def delete_conversation(user_id: str, conversation_id: str) -> Dict[str, s
     """
     try:
         result = conversations_collection.delete_one(
-            {"conversation_id": conversation_id, "user_id": user_id}
+            {
+                "conversation_id": conversation_id,
+                "user_id": user_id,
+            }
         )
+
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Conversation not found")
+
         return {"message": "Conversation deleted successfully"}
+
     except HTTPException:
         raise
-    except Exception as exc:  # pragma: no cover - defensive
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 

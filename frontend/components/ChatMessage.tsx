@@ -1,13 +1,12 @@
 /**
  * Chat Message Component
- * Displays individual messages in the chat interface
+ * Displays individual messages in the chat interface.
  */
 
 "use client";
 
 import { User, Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-
 import ReferenceCard from "./ReferenceCard";
 
 interface Reference {
@@ -51,7 +50,7 @@ export default function ChatMessageComponent({
         <div
           className={`rounded-2xl px-4 py-3 ${
             isUser
-              ? "bg-sky-500 text-white shadow-[0_0_20px_rgba(56,189,248,0.7)]"
+              ? "bg-primary text-primary-foreground"
               : "bg-card border border-border"
           }`}
         >
@@ -68,13 +67,22 @@ export default function ChatMessageComponent({
                 </>
               ) : isStreaming ? (
                 <div className="flex items-center gap-1 text-foreground/60">
-                  <span className="animate-bounce" style={{ animationDelay: "0ms" }}>
+                  <span
+                    className="animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  >
                     .
                   </span>
-                  <span className="animate-bounce" style={{ animationDelay: "150ms" }}>
+                  <span
+                    className="animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  >
                     .
                   </span>
-                  <span className="animate-bounce" style={{ animationDelay: "300ms" }}>
+                  <span
+                    className="animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  >
                     .
                   </span>
                 </div>

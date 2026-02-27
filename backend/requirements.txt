@@ -11,4 +11,8 @@ pymongo
 httpx
 PyPDF2
 jinja2
-python-pptx
+beautifulsoup4
+aiohttp
+apscheduler
+python-jobspy
+pandas

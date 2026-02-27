@@ -1,3 +1,4 @@
+// components/templates/ClassicTemplate.tsx
 import React from "react";
 
 interface ResumeData {
@@ -156,6 +157,7 @@ export default function ClassicTemplate({ data }: { data: ResumeData }) {
         .school {
           font-size: 13px;
           color: #333;
+          margin-top: 3px;
         }
 
         .skills-grid {
@@ -182,9 +184,7 @@ export default function ClassicTemplate({ data }: { data: ResumeData }) {
 
       <header>
         <h1>{data.personal.name}</h1>
-        {data.personal.title && (
-          <div className="title">{data.personal.title}</div>
-        )}
+        {data.personal.title && <div className="title">{data.personal.title}</div>}
         <div className="contact">
           <span>{data.personal.email}</span>
           <span>|</span>

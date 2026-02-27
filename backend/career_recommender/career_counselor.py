@@ -1,14 +1,32 @@
 """
 Career Counselor Integration Service
 Orchestrates user data + Tavily web intelligence + Gemini AI.
-Ported from HACKSYNC and adapted to use ProjectMorpheus GeminiService.
 """
 
-from typing import Dict, List, Optional, AsyncGenerator, Tuple
+from typing import List, Dict, Optional, AsyncGenerator, Any
 
 from gemini_service import gemini_service
-
 from .tavily_service import tavily_service
+
+
+def _extract_text_from_gemini_response(response: Dict[str, Any]) -> str:
+    """
+    Convert a Gemini JSON response into a plain text string by
+    concatenating all candidate parts.
+    """
+    candidates = response.get("candidates", []) or []
+    if not candidates:
+        raise ValueError("Empty Gemini response: no candidates returned")
+
+    parts = candidates[0].get("content", {}).get("parts", []) or []
+    text_chunks: List[str] = []
+    for part in parts:
+        if isinstance(part, dict) and "text" in part:
+            text_chunks.append(str(part["text"]))
+    text = "".join(text_chunks).strip()
+    if not text:
+        raise ValueError("Gemini response did not contain any text content")
+    return text
 
 
 class CareerCounselorService:
@@ -16,45 +34,33 @@ class CareerCounselorService:
         self.gemini = gemini_service
         print("✓ Career Counselor initialized")
 
-    async def _generate_text(self, prompt: str) -> str:
-        """
-        Generate plain-text content using the shared Gemini HTTP service.
-        """
-        response_json = await self.gemini.generate(prompt)
-
-        candidates = response_json.get("candidates", [])
-        if not candidates:
-            raise ValueError("No candidates in Gemini response")
-
-        parts = candidates[0].get("content", {}).get("parts", [])
-        if not parts:
-            raise ValueError("No content parts in Gemini response")
-
-        return (parts[0].get("text") or "").strip()
-
     async def generate_response(
         self,
         user_message: str,
         user_profile: Optional[Dict] = None,
         conversation_history: Optional[List[Dict]] = None,
         attachments: Optional[List[Dict]] = None,
-    ) -> Tuple[str, List[Dict]]:
+    ) -> tuple[str, List[Dict]]:
         """
         Generate AI counseling response with web intelligence.
         Returns: (response_text, tavily_references)
         """
+        # Step 1: Gather intelligence from Tavily
         tavily_data = await self._gather_intelligence(user_message, user_profile)
         references = tavily_service.format_references(tavily_data)
 
+        # Step 2: Build context-rich prompt
         prompt = self._build_counseling_prompt(
             user_message=user_message,
             user_profile=user_profile,
             tavily_data=tavily_data,
-            conversation_history=conversation_history or [],
-            attachments=attachments or [],
+            conversation_history=conversation_history,
+            attachments=attachments,
         )
 
-        response_text = await self._generate_text(prompt)
+        # Step 3: Generate response with Gemini
+        raw_response = await self.gemini.generate(prompt)
+        response_text = _extract_text_from_gemini_response(raw_response)
         return response_text, references
 
     async def generate_streaming_response(
@@ -63,11 +69,11 @@ class CareerCounselorService:
         user_profile: Optional[Dict] = None,
         conversation_history: Optional[List[Dict]] = None,
         attachments: Optional[List[Dict]] = None,
-    ) -> AsyncGenerator[Tuple[str, List[Dict]], None]:
+    ) -> AsyncGenerator[tuple[str, List[Dict]], None]:
         """
-        Stream AI counseling response in small chunks.
-        We don't have true streaming from Gemini in this project,
-        so we generate the full response once and then yield it in pieces.
+        Stream AI counseling response.
+        We don't have true token streaming from Gemini here, so we
+        yield the full response as a single chunk.
         """
         tavily_data = await self._gather_intelligence(user_message, user_profile)
         references = tavily_service.format_references(tavily_data)
@@ -76,18 +82,15 @@ class CareerCounselorService:
             user_message=user_message,
             user_profile=user_profile,
             tavily_data=tavily_data,
-            conversation_history=conversation_history or [],
-            attachments=attachments or [],
+            conversation_history=conversation_history,
+            attachments=attachments,
         )
 
-        full_text = await self._generate_text(prompt)
+        raw_response = await self.gemini.generate(prompt)
+        response_text = _extract_text_from_gemini_response(raw_response)
 
-        chunk_size = 120
-        first = True
-        for i in range(0, len(full_text), chunk_size):
-            chunk = full_text[i : i + chunk_size]
-            yield chunk, (references if first else [])
-            first = False
+        # Yield once with references; caller will treat as a stream.
+        yield response_text, references
 
     async def _gather_intelligence(
         self,
@@ -95,7 +98,7 @@ class CareerCounselorService:
         user_profile: Optional[Dict],
     ) -> Dict:
         """
-        Decide what to search based on user query and profile.
+        Intelligently decide what to search based on user query.
         """
         message_lower = user_message.lower()
 
@@ -108,6 +111,7 @@ class CareerCounselorService:
                 skills = user_profile.get("skills", [])
                 interests = user_profile.get("interests", [])
                 return await tavily_service.search_career_trends(skills, interests)
+            # Generic career search if no profile
             return await tavily_service.search_career_trends(
                 ["technology"], ["innovation"]
             )
@@ -134,6 +138,7 @@ class CareerCounselorService:
             interests = user_profile.get("interests", [])[:1]
             return await tavily_service.search_career_trends(skills, interests)
 
+        # Generic trending careers search
         return await tavily_service.search_career_trends(
             ["technology"], ["career growth"]
         )
@@ -155,7 +160,7 @@ class CareerCounselorService:
             "",
         ]
 
-        # User profile
+        # Add user profile context (if available)
         if user_profile:
             prompt_parts.append("=== USER PROFILE ===")
             prompt_parts.append(f"Skills: {', '.join(user_profile.get('skills', []))}")
@@ -170,7 +175,7 @@ class CareerCounselorService:
             )
             prompt_parts.append("")
 
-        # Web intelligence
+        # Add web intelligence
         if tavily_data.get("results"):
             prompt_parts.append("=== CURRENT MARKET INTELLIGENCE (2026) ===")
             for result in tavily_data["results"][:5]:
@@ -180,26 +185,28 @@ class CareerCounselorService:
                 )
             prompt_parts.append("")
 
-        # Conversation history (last 10 messages)
+        # Add conversation history (last 10 messages)
         if conversation_history:
-            prompt_parts.append("=== CONVERSATION HISTORY ===")
-            for msg in conversation_history[-10:]:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-                prompt_parts.append(f"{role.upper()}: {content[:200]}")
-            prompt_parts.append("")
+            if len(conversation_history) > 0:
+                prompt_parts.append("=== CONVERSATION HISTORY ===")
+                for msg in conversation_history[-10:]:
+                    role = msg.get("role", "user")
+                    content = msg.get("content", "")
+                    prompt_parts.append(f"{role.upper()}: {content[:200]}")
+                prompt_parts.append("")
 
-        # Attachments
+        # Handle attachments (metadata only, content not embedded here)
         if attachments:
-            prompt_parts.append("=== USER ATTACHMENTS ===")
-            for att in attachments:
-                prompt_parts.append(
-                    f"- {att.get('type', 'unknown')}: "
-                    f"{att.get('filename', 'unnamed')}"
-                )
-            prompt_parts.append("")
+            if len(attachments) > 0:
+                prompt_parts.append("=== USER ATTACHMENTS ===")
+                for att in attachments:
+                    prompt_parts.append(
+                        f"- {att.get('type', 'unknown')}: "
+                        f"{att.get('filename', 'unnamed')}"
+                    )
+                prompt_parts.append("")
 
-        # Instructions
+        # Add instructions
         prompt_parts.extend(
             [
                 "=== INSTRUCTIONS ===",
@@ -221,5 +228,6 @@ class CareerCounselorService:
         return "\n".join(prompt_parts)
 
 
+# Singleton instance
 career_counselor = CareerCounselorService()
 

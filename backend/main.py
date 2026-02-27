@@ -8,7 +8,10 @@ from auth.router import router as auth_router
 from user_profile.routes import router as profile_router
 from ai_resume_builder.routes import router as ai_resume_router
 from portfolio.routes import router as portfolio_router
-from presentation.routes import router as presentation_router
+from job_application.routes import router as job_application_router
+from resume_analyzer.routes import router as resume_analyzer_router
+from cold_mail.routes import router as cold_mail_router
+from job_tracker.routes import router as job_tracker_router
 from career_recommender.routes import router as career_router
 
 logger = get_logger(__name__)
@@ -44,8 +47,11 @@ app.include_router(auth_router)
 app.include_router(profile_router)
 app.include_router(ai_resume_router)
 app.include_router(portfolio_router)
-app.include_router(presentation_router)
-app.include_router(career_router)
+app.include_router(job_application_router, prefix="/api", tags=["Job Application"])
+app.include_router(resume_analyzer_router, prefix="/api", tags=["Resume Analyzer"])
+app.include_router(cold_mail_router, prefix="/api", tags=["Cold Mail"])
+app.include_router(job_tracker_router, prefix="/api/jobs", tags=["Job Tracker"])
+app.include_router(career_router, prefix="/api/career", tags=["Career Recommender"])
 
 @app.get("/")
 def home():

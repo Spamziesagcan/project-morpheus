@@ -1,13 +1,12 @@
 /**
  * Conversations Sidebar Component
- * Displays past conversations with New Chat button
+ * Displays past conversations with New Chat button.
  */
 
 "use client";
 
 import { MessageSquarePlus, Trash2, Clock } from "lucide-react";
-import { useEffect, useState } from "react";
-
+import { useState, useEffect } from "react";
 import { API_ENDPOINTS } from "@/lib/config";
 
 interface ConversationItem {
@@ -39,17 +38,18 @@ export default function ConversationsSidebar({
     if (userId) {
       loadConversations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const loadConversations = async () => {
     try {
       setLoading(true);
       const response = await fetch(
-        API_ENDPOINTS.CAREER.CONVERSATIONS_BY_USER(userId)
+        `${API_ENDPOINTS.CAREER.CONVERSATIONS}/${userId}`,
       );
       if (response.ok) {
         const data = await response.json();
-        setConversations(data.conversations);
+        setConversations(data.conversations || []);
       }
     } catch (error) {
       console.error("Failed to load conversations:", error);
@@ -58,19 +58,22 @@ export default function ConversationsSidebar({
     }
   };
 
-  const handleDelete = async (conversationId: string, e: React.MouseEvent) => {
+  const handleDelete = async (
+    conversationId: string,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
     if (!confirm("Delete this conversation?")) return;
 
     try {
       const response = await fetch(
-        API_ENDPOINTS.CAREER.CONVERSATION_DETAIL(userId, conversationId),
-        { method: "DELETE" }
+        `${API_ENDPOINTS.CAREER.CONVERSATIONS}/${userId}/${conversationId}`,
+        { method: "DELETE" },
       );
 
       if (response.ok) {
         setConversations((prev) =>
-          prev.filter((c) => c.conversation_id !== conversationId)
+          prev.filter((c) => c.conversation_id !== conversationId),
         );
         onDeleteConversation?.(conversationId);
       }
@@ -82,7 +85,8 @@ export default function ConversationsSidebar({
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    const diffInHours =
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h ago`;
@@ -100,7 +104,7 @@ export default function ConversationsSidebar({
       <div className="p-4 border-b border-border">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-sky-500 text-white shadow-[0_0_24px_rgba(56,189,248,0.7)] hover:bg-sky-400 transition-colors font-medium"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           <MessageSquarePlus className="w-4 h-4" />
           New Chat
@@ -135,7 +139,7 @@ export default function ConversationsSidebar({
                   onClick={() => onSelectConversation(conv.conversation_id)}
                   className={`w-full text-left p-3 rounded-lg transition-all group cursor-pointer ${
                     currentConversationId === conv.conversation_id
-                      ? "bg-sky-500/10 border border-sky-400"
+                      ? "bg-primary/10 border border-primary/50"
                       : "bg-background/50 border border-transparent hover:border-border hover:bg-background"
                   }`}
                 >
@@ -150,7 +154,9 @@ export default function ConversationsSidebar({
                       </div>
                     </div>
                     <button
-                      onClick={(e) => handleDelete(conv.conversation_id, e)}
+                      onClick={(e) =>
+                        handleDelete(conv.conversation_id, e)
+                      }
                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />

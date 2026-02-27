@@ -31,18 +31,26 @@ export const API_ENDPOINTS = {
     DEPLOY: `${API_BASE_URL}/portfolio/deploy`,
     PUBLIC_DATA: (userId: string) => `${API_BASE_URL}/portfolio/${userId}/data`,
   },
-  PRESENTATION: {
-    OUTLINE: `${API_BASE_URL}/presentation/outline`,
-    GENERATE: `${API_BASE_URL}/presentation/generate`,
-    DOWNLOAD: `${API_BASE_URL}/presentation/download`,
-    HISTORY: `${API_BASE_URL}/presentation/history`,
-    HISTORY_BY_ID: (pptId: number) => `${API_BASE_URL}/presentation/history/${pptId}`,
+  RESUME_ANALYZER: {
+    ANALYZE: `${API_BASE_URL}/api/resume-analyzer/analyze`,
+  },
+  COLD_MAIL: {
+    SEARCH_COMPANIES: `${API_BASE_URL}/api/cold-mail/search-companies`,
+    GENERATE_TEMPLATE: `${API_BASE_URL}/api/cold-mail/generate-template`,
+    BULK_SEND: `${API_BASE_URL}/api/cold-mail/bulk-send`,
+  },
+  JOBS: {
+    RELEVANT: `${API_BASE_URL}/api/jobs/relevant`,
+    ALL: `${API_BASE_URL}/api/jobs/all`,
+    SAVE: `${API_BASE_URL}/api/jobs/save`,
+    SAVED: `${API_BASE_URL}/api/jobs/saved`,
+    TRIGGER_SCRAPE: `${API_BASE_URL}/api/jobs/trigger-scrape`,
   },
   CAREER: {
+    CHAT: `${API_BASE_URL}/api/career/chat`,
     CHAT_STREAM: `${API_BASE_URL}/api/career/chat/stream`,
-    CONVERSATIONS_BY_USER: (userId: string) =>
-      `${API_BASE_URL}/api/career/conversations/${userId}`,
-    CONVERSATION_DETAIL: (userId: string, conversationId: string) =>
-      `${API_BASE_URL}/api/career/conversations/${userId}/${conversationId}`,
+    RECOMMEND: `${API_BASE_URL}/api/career/recommend`,
+    TRENDS: `${API_BASE_URL}/api/career/trends`,
+    CONVERSATIONS: `${API_BASE_URL}/api/career/conversations`,
   },
 } as const;

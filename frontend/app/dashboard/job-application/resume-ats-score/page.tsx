@@ -119,7 +119,7 @@ export default function ResumeAtsScorePage() {
             <div className="rounded-lg bg-foreground p-2">
               <FileSearch className="h-6 w-6 text-background" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-3xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
               Resume ATS Score
             </h1>
           </div>
@@ -138,11 +138,11 @@ export default function ResumeAtsScorePage() {
 
         {/* Input Section */}
         {!analysisResult && (
-          <div className="mb-8 rounded-xl border border-border bg-card p-8">
+          <div className="mb-8 rounded-xl border-2 border-border bg-card p-8">
             <div className="space-y-6">
               {/* Resume Upload */}
               <div>
-                <label className="mb-3 block text-sm font-semibold text-foreground">
+                <label className="mb-3 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                   Upload Resume (PDF) <span className="text-red-500">*</span>
                 </label>
                 <div className="rounded-lg border-2 border-dashed border-border p-6 text-center transition hover:border-foreground/50">
@@ -183,7 +183,7 @@ export default function ResumeAtsScorePage() {
 
               {/* Job Description */}
               <div>
-                <label className="mb-3 block text-sm font-semibold text-foreground">
+                <label className="mb-3 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                   Job Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -202,7 +202,7 @@ export default function ResumeAtsScorePage() {
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing || !resumeFile || !jobDescription.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-lg shiny-blue-bg px-6 py-4 text-lg font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-lg shiny-blue-bg px-6 py-4 text-xs font-bold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.12em] uppercase"
               >
                 {analyzing ? (
                   <>
@@ -240,10 +240,10 @@ export default function ResumeAtsScorePage() {
             {/* Scores Section */}
             <div className="grid gap-6 md:grid-cols-3">
               {/* ATS Score */}
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <BarChart3 className="h-6 w-6 text-sky-500" />
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     ATS score
                   </h3>
                 </div>
@@ -269,10 +269,10 @@ export default function ResumeAtsScorePage() {
               </div>
 
               {/* Readiness Score */}
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <Target className="h-6 w-6 text-purple-500" />
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     Readiness score
                   </h3>
                 </div>
@@ -300,10 +300,10 @@ export default function ResumeAtsScorePage() {
               </div>
 
               {/* Match Percentage */}
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <TrendingUp className="h-6 w-6 text-emerald-500" />
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     Match percentage
                   </h3>
                 </div>
@@ -334,10 +334,10 @@ export default function ResumeAtsScorePage() {
 
             {/* Strengths */}
             {analysisResult.strengths.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                  <h3 className="text-xl font-semibold text-foreground">
+                  <h3 className="text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     Strengths
                   </h3>
                 </div>
@@ -357,10 +357,10 @@ export default function ResumeAtsScorePage() {
 
             {/* Gaps */}
             {analysisResult.gaps.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <XCircle className="h-6 w-6 text-red-500" />
-                  <h3 className="text-xl font-semibold text-foreground">
+                  <h3 className="text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     Gaps & missing elements
                   </h3>
                 </div>
@@ -380,10 +380,10 @@ export default function ResumeAtsScorePage() {
 
             {/* Tips */}
             {analysisResult.tips.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <Lightbulb className="h-6 w-6 text-yellow-500" />
-                  <h3 className="text-xl font-semibold text-foreground">
+                  <h3 className="text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     Improvement tips
                   </h3>
                 </div>
@@ -403,10 +403,10 @@ export default function ResumeAtsScorePage() {
 
             {/* Recommendations */}
             {analysisResult.recommendations.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div className="rounded-xl border-2 border-border bg-card p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <Target className="h-6 w-6 text-sky-500" />
-                  <h3 className="text-xl font-semibold text-foreground">
+                  <h3 className="text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                     Recommendations
                   </h3>
                 </div>

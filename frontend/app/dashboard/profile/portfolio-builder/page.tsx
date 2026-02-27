@@ -8,7 +8,6 @@ import {
   ExternalLink,
   Loader2,
   Terminal,
-  Sparkles,
   Briefcase,
   CheckCircle2,
 } from "lucide-react";
@@ -184,7 +183,7 @@ export default function PortfolioBuilderProfilePage() {
         {/* Design Selection - Show only when no portfolio is generated */}
         {!portfolioData && !loading && (
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6 font-mono tracking-[0.08em] uppercase">
               Choose Your Portfolio Design
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -228,7 +227,7 @@ export default function PortfolioBuilderProfilePage() {
                 <div className="bg-card p-4 border-t border-border">
                   <div className="flex items-center gap-3 mb-2">
                     <Terminal className="w-5 h-5 text-green-400" />
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Hacker Terminal
                     </h3>
                   </div>
@@ -263,8 +262,7 @@ export default function PortfolioBuilderProfilePage() {
                 </div>
                 <div className="bg-card p-4 border-t border-border">
                   <div className="flex items-center gap-3 mb-2">
-                    <Sparkles className="w-5 h-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Minimal
                     </h3>
                   </div>
@@ -304,7 +302,7 @@ export default function PortfolioBuilderProfilePage() {
                 <div className="bg-card p-4 border-t border-border">
                   <div className="flex items-center gap-3 mb-2">
                     <Briefcase className="w-5 h-5 text-purple-400" />
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Professional
                     </h3>
                   </div>
@@ -320,7 +318,7 @@ export default function PortfolioBuilderProfilePage() {
               <button
                 onClick={generatePortfolio}
                 disabled={loading || !selectedDesign}
-                className="px-8 py-4 rounded-xl bg-sky-500 text-white text-lg font-semibold shadow-[0_0_28px_rgba(56,189,248,0.85)] hover:bg-sky-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-4 rounded-xl bg-sky-500 text-white text-xs font-bold shadow-[0_0_28px_rgba(56,189,248,0.85)] hover:bg-sky-400 transition disabled:opacity-50 disabled:cursor-not-allowed font-mono tracking-[0.12em] uppercase"
               >
                 {loading ? (
                   <>

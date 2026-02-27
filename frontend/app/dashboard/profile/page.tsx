@@ -19,7 +19,6 @@ import {
   Mail,
   FolderGit2,
   Loader2,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -480,7 +479,7 @@ export default function UserProfilePage() {
       </div>
 
       <div className="bg-white dark:bg-black border-2 border-black/20 dark:border-white/20 rounded-xl p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2 font-mono tracking-[0.08em] uppercase">
           <FileText className="w-5 h-5 text-blue-500" />
           Resume
         </h2>
@@ -556,7 +555,6 @@ export default function UserProfilePage() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
                     Extract &amp; Auto-Fill
                   </>
                 )}
@@ -586,7 +584,7 @@ export default function UserProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-black dark:text-white mb-2">
+            <label className="block text-xs font-bold text-black dark:text-white mb-2 font-mono tracking-[0.12em] uppercase">
               Full Name
             </label>
             <input
@@ -599,7 +597,7 @@ export default function UserProfilePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-black dark:text-white mb-2">
+            <label className="block text-xs font-bold text-black dark:text-white mb-2 font-mono tracking-[0.12em] uppercase">
               Location
             </label>
             <input

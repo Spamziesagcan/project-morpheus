@@ -11,7 +11,6 @@ import {
   Search,
   Send,
   Settings,
-  Sparkles,
   Square,
 } from "lucide-react";
 
@@ -344,13 +343,13 @@ export default function ColdMailSenderPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-1">
             <div className="rounded-xl border border-border bg-card p-6">
-              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-foreground">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                 <Search className="h-5 w-5" />
                 Search companies
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Company type
                   </label>
                   <select
@@ -385,7 +384,7 @@ export default function ColdMailSenderPage() {
                 <button
                   onClick={handleSearch}
                   disabled={searching || !companyType.trim()}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-3 text-xs font-bold text-white shadow-[0_0_20px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.12em] uppercase"
                 >
                   {searching ? (
                     <>
@@ -421,7 +420,7 @@ export default function ColdMailSenderPage() {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Your email <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -433,7 +432,7 @@ export default function ColdMailSenderPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     SMTP password <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -451,7 +450,7 @@ export default function ColdMailSenderPage() {
             </div>
 
             <div className="rounded-xl border border-border bg-card p-6">
-              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-foreground">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                 <FileText className="h-5 w-5" />
                 Resume (optional)
               </h2>
@@ -564,7 +563,6 @@ export default function ColdMailSenderPage() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="h-4 w-4" />
                         Generate with AI
                       </>
                     )}
@@ -572,7 +570,7 @@ export default function ColdMailSenderPage() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">
+                    <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                       Subject
                     </label>
                     <input
@@ -584,7 +582,7 @@ export default function ColdMailSenderPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-foreground">
+                    <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                       Body
                     </label>
                     <textarea

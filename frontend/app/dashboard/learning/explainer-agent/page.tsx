@@ -33,6 +33,9 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
+  History,
+  Save,
+  CheckCircle2,
 } from "lucide-react";
 
 interface Section {
@@ -321,7 +324,7 @@ function ExplainerPageContent() {
 
   const videoTranscript = searchParams?.get("transcript");
 
-  const [step, setStep] = useState<"input" | "settings" | "loading" | "result">(
+  const [step, setStep] = useState<"input" | "settings" | "loading" | "result" | "history">(
     videoTranscript ? "settings" : "input",
   );
 
@@ -343,6 +346,13 @@ function ExplainerPageContent() {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(
     new Set([0]),
   );
+
+  // History and save states
+  const [pastExplanations, setPastExplanations] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -465,6 +475,109 @@ function ExplainerPageContent() {
     }
   };
 
+  const saveExplanation = async () => {
+    if (!explanation) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please log in to save explanations.");
+        setIsSaving(false);
+        return;
+      }
+
+      const response = await fetch(API_ENDPOINTS.EXPLAINER.SAVE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          explanation: explanation,
+          original_content: explanation.original_content || "",
+          content_source: explanation.content_source || inputMode,
+          complexity: complexity,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.message || "Failed to save explanation");
+      }
+
+      setSaveMessage("Explanation saved successfully!");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save explanation.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please log in to view explanation history.");
+        setLoadingHistory(false);
+        return;
+      }
+      const response = await fetch(API_ENDPOINTS.EXPLAINER.HISTORY, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || "Failed to load history");
+      }
+      setPastExplanations(data.explanations || []);
+      setStep("history");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load explanation history.";
+      setError(message);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const loadExplanation = async (explainerId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please log in to load explanations.");
+        setIsLoading(false);
+        return;
+      }
+      const response = await fetch(API_ENDPOINTS.EXPLAINER.HISTORY_DETAIL(explainerId), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || "Failed to load explanation");
+      }
+      const loadedExplanation = data.explanation;
+      setExplanation(loadedExplanation.explanation);
+      setComplexity(loadedExplanation.complexity || "medium");
+      setStep("result");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load explanation.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const toggleSection = (index: number) => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(index)) {
@@ -479,23 +592,47 @@ function ExplainerPageContent() {
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
-            <Lightbulb className="h-8 w-8 text-primary" />
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
+              <Lightbulb className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">AI Explainer</h1>
+              <p className="text-xs text-muted-foreground font-mono tracking-[0.1em] uppercase">
+                Get comprehensive explanations with diagrams, workflows, and
+                references
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">AI Explainer</h1>
-            <p className="text-sm text-muted-foreground">
-              Get comprehensive explanations with diagrams, workflows, and
-              references
-            </p>
-          </div>
+          {step !== "history" && (
+            <button
+              onClick={fetchHistory}
+              className="flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
+            >
+              <History className="h-5 w-5" />
+              History
+            </button>
+          )}
         </div>
+
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        {saveMessage && (
+          <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-600 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
+            <CheckCircle2 className="h-5 w-5" />
+            {saveMessage}
+          </div>
+        )}
 
         {/* Input Step */}
         {step === "input" && (
-          <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-            <h2 className="mb-6 text-2xl font-semibold">Select Input Source</h2>
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+            <h2 className="mb-6 text-2xl font-bold font-mono tracking-[0.08em] uppercase">Select Input Source</h2>
 
             <div className="mb-8 grid grid-cols-3 gap-4">
               {[
@@ -506,7 +643,7 @@ function ExplainerPageContent() {
                 <button
                   key={mode}
                   onClick={() => setInputMode(mode)}
-                  className={`flex items-center justify-center gap-2 rounded-lg border-2 px-6 py-4 font-medium transition-all ${
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 px-6 py-4 font-bold transition-all font-mono tracking-[0.1em] uppercase ${
                     inputMode === mode
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border bg-card hover:bg-accent"
@@ -523,7 +660,7 @@ function ExplainerPageContent() {
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder="Paste your content here..."
-                className="h-64 w-full resize-none rounded-lg border border-border bg-background px-4 py-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="h-64 w-full resize-none rounded-lg border-2 border-border bg-background px-4 py-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             )}
 
@@ -533,7 +670,7 @@ function ExplainerPageContent() {
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder="https://example.com/article"
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-lg border-2 border-border bg-background px-4 py-3 font-mono tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-primary"
               />
             )}
 
@@ -549,12 +686,12 @@ function ExplainerPageContent() {
                 />
                 <label
                   htmlFor="pdf-upload"
-                  className="inline-block cursor-pointer rounded-lg border border-border bg-card px-6 py-3 font-medium transition-all hover:bg-accent"
+                  className="inline-block cursor-pointer rounded-lg border-2 border-border bg-card px-6 py-3 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
                 >
                   Choose PDF File
                 </label>
                 {pdfFile && (
-                  <p className="mt-4 font-medium text-green-600">
+                  <p className="mt-4 font-bold text-green-600 font-mono tracking-[0.05em]">
                     ✓ {pdfFile.name}
                   </p>
                 )}
@@ -563,7 +700,7 @@ function ExplainerPageContent() {
 
             <button
               onClick={handleNextToSettings}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-bold text-primary-foreground transition-all hover:bg-primary/90 font-mono tracking-[0.12em] uppercase"
             >
               Next <ArrowRight className="h-5 w-5" />
             </button>
@@ -572,11 +709,11 @@ function ExplainerPageContent() {
 
         {/* Settings Step */}
         {step === "settings" && (
-          <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-            <h2 className="mb-6 text-2xl font-semibold">Explanation Settings</h2>
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+            <h2 className="mb-6 text-2xl font-bold font-mono tracking-[0.08em] uppercase">Explanation Settings</h2>
 
             <div className="mb-8">
-              <label className="mb-3 block text-lg font-medium">
+              <label className="mb-3 block text-xs font-bold font-mono tracking-[0.12em] uppercase">
                 Complexity Level
               </label>
               <div className="grid grid-cols-3 gap-4">
@@ -584,7 +721,7 @@ function ExplainerPageContent() {
                   <button
                     key={level}
                     onClick={() => setComplexity(level)}
-                    className={`rounded-lg border-2 px-6 py-4 font-medium transition-all ${
+                    className={`rounded-lg border-2 px-6 py-4 font-bold transition-all font-mono tracking-[0.1em] uppercase ${
                       complexity === level
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-card hover:bg-accent"
@@ -599,13 +736,13 @@ function ExplainerPageContent() {
             <div className="flex gap-4">
               <button
                 onClick={() => setStep("input")}
-                className="flex-1 rounded-lg border border-border bg-card px-8 py-4 font-semibold transition-all hover:bg-accent"
+                className="flex-1 rounded-lg border-2 border-border bg-card px-8 py-4 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
               >
                 Back
               </button>
               <button
                 onClick={handleGenerate}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-bold text-primary-foreground transition-all hover:bg-primary/90 font-mono tracking-[0.12em] uppercase"
               >
                 <Brain className="h-5 w-5" />
                 Generate Explanation
@@ -616,9 +753,9 @@ function ExplainerPageContent() {
 
         {/* Loading Step */}
         {step === "loading" && (
-          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
+          <div className="rounded-xl border-2 border-border bg-card p-12 text-center shadow-sm">
             <Loader2 className="mx-auto mb-6 h-16 w-16 animate-spin text-primary" />
-            <h2 className="mb-2 text-2xl font-semibold">
+            <h2 className="mb-2 text-2xl font-bold font-mono tracking-[0.08em] uppercase">
               Generating Explanation...
             </h2>
             <p className="text-muted-foreground">
@@ -631,25 +768,37 @@ function ExplainerPageContent() {
         {step === "result" && explanation && (
           <div className="space-y-6">
             {/* Title and Summary */}
-            <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-              <h1 className="mb-4 text-4xl font-bold">{explanation.title}</h1>
-              <p className="text-lg leading-relaxed text-muted-foreground">
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+              <h1 className="mb-4 text-4xl font-bold font-mono tracking-[0.08em] uppercase">{explanation.title}</h1>
+              <p className="text-sm leading-relaxed text-muted-foreground font-mono tracking-[0.05em]">
                 {explanation.summary}
               </p>
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <button
+                onClick={saveExplanation}
+                disabled={isSaving}
+                className="flex items-center justify-center gap-2 rounded-lg border-2 border-border bg-card px-6 py-4 font-bold transition-all hover:bg-accent disabled:opacity-50 font-mono tracking-[0.12em] uppercase"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Save className="h-5 w-5" />
+                )}
+                {isSaving ? "Saving..." : "Save"}
+              </button>
               <button
                 onClick={handleFlashcardsRedirect}
-                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-6 py-4 font-semibold transition-all hover:bg-accent"
+                className="flex items-center justify-center gap-2 rounded-lg border-2 border-border bg-card px-6 py-4 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
               >
                 <Layers className="h-5 w-5" />
                 Create Flashcards
               </button>
               <button
                 onClick={() => setShowChat(true)}
-                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-4 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-4 font-bold text-primary-foreground transition-all hover:bg-primary/90 font-mono tracking-[0.12em] uppercase"
               >
                 <MessageCircle className="h-5 w-5" />
                 Ask Questions
@@ -660,13 +809,13 @@ function ExplainerPageContent() {
             {explanation.sections.map((section, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-border bg-card shadow-sm"
+                className="rounded-xl border-2 border-border bg-card shadow-sm"
               >
                 <button
                   onClick={() => toggleSection(idx)}
                   className="flex w-full items-center justify-between px-8 py-4 transition-colors hover:bg-accent"
                 >
-                  <h2 className="text-2xl font-semibold">{section.heading}</h2>
+                  <h2 className="text-2xl font-bold font-mono tracking-[0.08em] uppercase">{section.heading}</h2>
                   {expandedSections.has(idx) ? (
                     <ChevronUp className="h-6 w-6" />
                   ) : (
@@ -684,14 +833,14 @@ function ExplainerPageContent() {
 
                     {section.key_points.length > 0 && (
                       <div className="mt-6">
-                        <h3 className="mb-3 text-xl font-semibold">
+                        <h3 className="mb-3 text-xl font-bold font-mono tracking-[0.08em] uppercase">
                           Key Points
                         </h3>
                         <ul className="space-y-2">
                           {section.key_points.map((point, i) => (
                             <li key={i} className="flex items-start gap-3">
                               <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-green-600" />
-                              <span className="font-medium">{point}</span>
+                              <span className="font-bold font-mono tracking-[0.05em]">{point}</span>
                             </li>
                           ))}
                         </ul>
@@ -700,14 +849,14 @@ function ExplainerPageContent() {
 
                     {section.examples.length > 0 && (
                       <div className="mt-6">
-                        <h3 className="mb-3 text-xl font-semibold">Examples</h3>
+                        <h3 className="mb-3 text-xl font-bold font-mono tracking-[0.08em] uppercase">Examples</h3>
                         <div className="space-y-3">
                           {section.examples.map((example, i) => (
                             <div
                               key={i}
-                              className="rounded-lg border border-border bg-accent/50 p-4"
+                              className="rounded-lg border-2 border-border bg-accent/50 p-4"
                             >
-                              <p className="font-medium">{example}</p>
+                              <p className="font-bold font-mono tracking-[0.05em]">{example}</p>
                             </div>
                           ))}
                         </div>
@@ -720,8 +869,8 @@ function ExplainerPageContent() {
 
             {/* Concepts */}
             {explanation.concepts.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold font-mono tracking-[0.08em] uppercase">
                   <Brain className="h-7 w-7" />
                   Key Concepts
                 </h2>
@@ -729,15 +878,15 @@ function ExplainerPageContent() {
                   {explanation.concepts.map((concept, idx) => (
                     <div
                       key={idx}
-                      className="rounded-lg border border-border bg-accent/50 p-6"
+                      className="rounded-lg border-2 border-border bg-accent/50 p-6"
                     >
-                      <h3 className="mb-2 text-xl font-semibold">
+                      <h3 className="mb-2 text-xl font-bold font-mono tracking-[0.08em] uppercase">
                         {concept.term}
                       </h3>
-                      <p className="mb-3 font-medium text-muted-foreground">
+                      <p className="mb-3 font-bold text-muted-foreground font-mono tracking-[0.05em]">
                         {concept.definition}
                       </p>
-                      <div className="rounded-lg border border-border bg-card p-4">
+                      <div className="rounded-lg border-2 border-border bg-card p-4">
                         <p className="text-sm font-medium">
                           <span className="text-primary">💡 Analogy:</span>{" "}
                           {concept.analogy}
@@ -751,15 +900,15 @@ function ExplainerPageContent() {
 
             {/* Workflows */}
             {explanation.workflows.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold font-mono tracking-[0.08em] uppercase">
                   <WorkflowIcon className="h-7 w-7" />
                   Workflows & Processes
                 </h2>
                 <div className="space-y-8">
                   {explanation.workflows.map((workflow, idx) => (
                     <div key={idx}>
-                      <h3 className="mb-4 text-xl font-semibold">
+                      <h3 className="mb-4 text-xl font-bold font-mono tracking-[0.08em] uppercase">
                         {workflow.title}
                       </h3>
                       <div className="space-y-4">
@@ -768,8 +917,8 @@ function ExplainerPageContent() {
                             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground">
                               {i + 1}
                             </div>
-                            <div className="flex-1 rounded-lg border border-border bg-accent/50 p-4">
-                              <p className="font-medium">{step}</p>
+                            <div className="flex-1 rounded-lg border-2 border-border bg-accent/50 p-4">
+                              <p className="font-bold font-mono tracking-[0.05em]">{step}</p>
                             </div>
                           </div>
                         ))}
@@ -782,15 +931,15 @@ function ExplainerPageContent() {
 
             {/* Diagrams */}
             {explanation.diagrams.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-                <h2 className="mb-6 text-2xl font-semibold">Visual Diagrams</h2>
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 text-2xl font-bold font-mono tracking-[0.08em] uppercase">Visual Diagrams</h2>
                 <div className="space-y-6">
                   {explanation.diagrams.map((diagram, idx) => {
                     if (!diagram.mermaid_code) {
                       return (
                         <div
                           key={idx}
-                          className="rounded-lg border border-border bg-accent/50 p-6"
+                          className="rounded-lg border-2 border-border bg-accent/50 p-6"
                         >
                           <div className="mb-3 flex items-center gap-3">
                             <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
@@ -813,7 +962,7 @@ function ExplainerPageContent() {
                       return (
                         <div
                           key={idx}
-                          className="rounded-lg border border-border bg-accent/50 p-6"
+                          className="rounded-lg border-2 border-border bg-accent/50 p-6"
                         >
                           <div className="mb-3 flex items-center gap-3">
                             <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
@@ -821,7 +970,7 @@ function ExplainerPageContent() {
                             </span>
                             <h3 className="font-semibold">{diagram.description}</h3>
                           </div>
-                          <div className="rounded-lg border border-border bg-card p-4">
+                          <div className="rounded-lg border-2 border-border bg-card p-4">
                             <pre className="whitespace-pre-wrap font-mono text-sm">
                               {diagram.mermaid_code}
                             </pre>
@@ -833,7 +982,7 @@ function ExplainerPageContent() {
                     return (
                       <div
                         key={idx}
-                        className="overflow-hidden rounded-lg border border-border bg-accent/50"
+                        className="overflow-hidden rounded-lg border-2 border-border bg-accent/50"
                       >
                         <div className="flex items-center gap-3 border-b border-border bg-card p-4">
                           <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
@@ -871,8 +1020,8 @@ function ExplainerPageContent() {
 
             {/* Image Suggestions */}
             {explanation.image_suggestions.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold font-mono tracking-[0.08em] uppercase">
                   <ImageIcon className="h-7 w-7" />
                   Recommended Visuals
                 </h2>
@@ -883,12 +1032,12 @@ function ExplainerPageContent() {
                       href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(img.query)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-4 rounded-lg border border-border bg-accent/50 p-4 transition-colors hover:bg-accent"
+                      className="flex items-center gap-4 rounded-lg border-2 border-border bg-accent/50 p-4 transition-colors hover:bg-accent"
                     >
                       <ImageIcon className="h-6 w-6 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold">{img.query}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-bold font-mono tracking-[0.05em]">{img.query}</p>
+                        <p className="text-xs text-muted-foreground font-mono tracking-[0.05em]">
                           {img.context}
                         </p>
                       </div>
@@ -901,8 +1050,8 @@ function ExplainerPageContent() {
 
             {/* References */}
             {explanation.references.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold font-mono tracking-[0.08em] uppercase">
                   <BookOpen className="h-7 w-7" />
                   Further Reading
                 </h2>
@@ -913,10 +1062,10 @@ function ExplainerPageContent() {
                       href={`https://www.google.com/search?q=${encodeURIComponent(ref.suggested_search)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block rounded-lg border border-border bg-accent/50 p-6 transition-colors hover:bg-accent"
+                      className="block rounded-lg border-2 border-border bg-accent/50 p-6 transition-colors hover:bg-accent"
                     >
-                      <h3 className="mb-2 text-lg font-semibold">{ref.title}</h3>
-                      <p className="mb-3 font-medium text-muted-foreground">
+                      <h3 className="mb-2 text-lg font-bold font-mono tracking-[0.08em] uppercase">{ref.title}</h3>
+                      <p className="mb-3 font-bold text-muted-foreground font-mono tracking-[0.05em]">
                         {ref.description}
                       </p>
                       <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
@@ -940,10 +1089,10 @@ function ExplainerPageContent() {
             />
 
             <div
-              className="fixed bottom-6 left-1/2 z-50 flex max-h-[70vh] w-[600px] max-w-[90vw] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+                className="fixed bottom-6 left-1/2 z-50 flex max-h-[70vh] w-[600px] max-w-[90vw] -translate-x-1/2 flex-col overflow-hidden rounded-xl border-2 border-border bg-card shadow-lg"
             >
               <div className="flex items-center justify-between border-b border-border bg-primary p-4">
-                <h3 className="flex items-center gap-2 font-semibold text-primary-foreground">
+                <h3 className="flex items-center gap-2 font-bold text-primary-foreground font-mono tracking-[0.1em] uppercase">
                   <MessageCircle className="h-5 w-5" />
                   Ask Questions
                 </h3>
@@ -971,25 +1120,25 @@ function ExplainerPageContent() {
                 {chatMessages.map((msg, idx) => (
                   <div
                     key={idx}
-                    className={`rounded-lg border border-border p-4 ${
+                    className={`rounded-lg border-2 border-border p-4 ${
                       msg.role === "user"
                         ? "ml-12 bg-primary/10"
                         : "mr-12 bg-accent/50"
                     }`}
                   >
-                    <p className="mb-1 text-sm font-semibold">
+                    <p className="mb-1 text-xs font-bold font-mono tracking-[0.1em] uppercase">
                       {msg.role === "user" ? "You" : "AI Tutor"}
                     </p>
-                    <p className="whitespace-pre-wrap text-foreground">
+                    <p className="whitespace-pre-wrap text-foreground font-mono tracking-[0.05em]">
                       {msg.content}
                     </p>
                   </div>
                 ))}
 
                 {isChatLoading && (
-                  <div className="flex items-center gap-2 rounded-lg border border-border bg-accent/50 p-4">
+                  <div className="flex items-center gap-2 rounded-lg border-2 border-border bg-accent/50 p-4">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="font-medium text-muted-foreground">
+                    <span className="font-bold text-muted-foreground font-mono tracking-[0.1em] uppercase">
                       Thinking...
                     </span>
                   </div>
@@ -1006,13 +1155,13 @@ function ExplainerPageContent() {
                       e.key === "Enter" && !isChatLoading && handleSendChat()
                     }
                     placeholder="Ask a question..."
-                    className="flex-1 rounded-lg border border-border bg-background px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 rounded-lg border-2 border-border bg-background px-4 py-3 font-mono tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={isChatLoading}
                   />
                   <button
                     onClick={handleSendChat}
                     disabled={isChatLoading || !chatInput.trim()}
-                    className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-lg bg-primary px-6 py-3 font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed font-mono tracking-[0.12em] uppercase"
                   >
                     <Send className="h-5 w-5" />
                   </button>
@@ -1020,6 +1169,73 @@ function ExplainerPageContent() {
               </div>
             </div>
           </>
+        )}
+
+        {/* History Step */}
+        {step === "history" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold font-mono tracking-[0.08em] uppercase">Explanation History</h2>
+              <button
+                onClick={() => setStep("input")}
+                className="flex items-center gap-2 rounded-lg border-2 border-border bg-card px-4 py-2 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
+              >
+                <ArrowRight className="h-5 w-5 rotate-180" />
+                Back
+              </button>
+            </div>
+
+            {loadingHistory ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : pastExplanations.length === 0 ? (
+              <div className="rounded-xl border-2 border-border bg-card p-12 text-center">
+                <History className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <p className="text-lg font-medium text-muted-foreground">
+                  No saved explanations yet
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Generate and save an explanation to see it here
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {pastExplanations.map((past) => (
+                  <div
+                    key={past.explainer_id}
+                    className="rounded-xl border-2 border-border bg-card p-6 transition-all hover:bg-accent/50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold font-mono tracking-[0.08em] uppercase">{past.title || "Untitled"}</h3>
+                        <div className="mt-2 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
+                            {past.content_source || "text"}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Brain className="h-4 w-4" />
+                            {past.complexity || "medium"}
+                          </span>
+                          <span>
+                            {new Date(past.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => loadExplanation(past.explainer_id)}
+                        className="ml-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-bold text-primary-foreground transition-all hover:bg-primary/90 font-mono tracking-[0.12em] uppercase"
+                      >
+                        View
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

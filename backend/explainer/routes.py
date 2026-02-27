@@ -2,14 +2,15 @@
 API routes for explainer operations
 """
 import re
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body, Depends
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from logger import get_logger
 from explainer.services import generate_explanation, generate_chat_response
-from explainer.schemas import ExplainerChatRequest, ExplainerChatResponse
+from explainer.schemas import ExplainerChatRequest, ExplainerChatResponse, SaveExplainerRequest
 from interview_agent.pdf_service import extract_text_from_pdf_bytes
 from auth.router import get_current_user
-from database import db
+from database import db, get_next_sequence
 import httpx
 
 logger = get_logger(__name__)
@@ -204,3 +205,139 @@ async def explainer_chat(
         logger.error(f"[EXPLAINER CHAT ROUTE ERROR] {type(e).__name__}: {str(e)}")
         logger.error("=" * 80, exc_info=True)
         raise HTTPException(status_code=500, detail=f"Chat response failed: {str(e)}")
+
+
+@router.post("/save")
+async def save_explainer(
+    request: SaveExplainerRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Save an explainer explanation for the current user.
+    """
+    logger.info("=" * 80)
+    logger.info(f"[EXPLAINER SAVE] POST /save endpoint called")
+    logger.info(f"[EXPLAINER SAVE] Content source: {request.content_source}")
+    logger.info(f"[EXPLAINER SAVE] Complexity: {request.complexity}")
+    
+    try:
+        user_id = str(current_user.get("_id") or current_user.get("user_id"))
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Invalid user")
+        
+        explainer_id = await get_next_sequence("explanations")
+        
+        doc = {
+            "explainer_id": explainer_id,
+            "user_id": user_id,
+            "user_email": current_user.get("email"),
+            "explanation": request.explanation,
+            "title": request.explanation.get("title", "Untitled"),
+            "original_content": request.original_content[:5000],  # Store first 5000 chars
+            "content_source": request.content_source,
+            "complexity": request.complexity,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        
+        result = await db["explanations"].insert_one(doc)
+        logger.info(f"[EXPLAINER SAVE] Saved explanation {explainer_id} for user {user_id}")
+        logger.info("=" * 80)
+        
+        return {
+            "success": True,
+            "explainer_id": explainer_id,
+            "message": "Explanation saved successfully",
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("=" * 80)
+        logger.error(f"[EXPLAINER SAVE ERROR] {type(e).__name__}: {str(e)}")
+        logger.error("=" * 80, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save explanation: {str(e)}")
+
+
+@router.get("/history")
+async def get_explainer_history(current_user: dict = Depends(get_current_user)):
+    """
+    List explainer explanations for the current user (without full content).
+    """
+    logger.info("=" * 80)
+    logger.info(f"[EXPLAINER HISTORY] GET /history endpoint called")
+    
+    try:
+        user_id = str(current_user.get("_id") or current_user.get("user_id"))
+        cursor = db["explanations"].find(
+            {"user_id": user_id},
+            {"explanation": 0, "original_content": 0},  # Exclude large fields
+        ).sort("created_at", -1)
+        
+        explanations: List[Dict[str, Any]] = []
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            created = doc.get("created_at")
+            updated = doc.get("updated_at")
+            if isinstance(created, datetime):
+                doc["created_at"] = created.isoformat()
+            if isinstance(updated, datetime):
+                doc["updated_at"] = updated.isoformat()
+            explanations.append(doc)
+        
+        logger.info(f"[EXPLAINER HISTORY] Found {len(explanations)} explanations for user {user_id}")
+        logger.info("=" * 80)
+        
+        return {
+            "success": True,
+            "explanations": explanations,
+            "count": len(explanations),
+        }
+        
+    except Exception as e:
+        logger.error("=" * 80)
+        logger.error(f"[EXPLAINER HISTORY ERROR] {type(e).__name__}: {str(e)}")
+        logger.error("=" * 80, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to load history: {str(e)}")
+
+
+@router.get("/history/{explainer_id}")
+async def get_explainer_by_id(
+    explainer_id: int, current_user: dict = Depends(get_current_user)
+):
+    """
+    Fetch a single explainer explanation by ID.
+    """
+    logger.info("=" * 80)
+    logger.info(f"[EXPLAINER HISTORY DETAIL] GET /history/{explainer_id} endpoint called")
+    
+    try:
+        user_id = str(current_user.get("_id") or current_user.get("user_id"))
+        doc = await db["explanations"].find_one(
+            {"explainer_id": explainer_id, "user_id": user_id}
+        )
+        
+        if not doc:
+            logger.warning(f"[EXPLAINER HISTORY DETAIL] Explanation {explainer_id} not found for user {user_id}")
+            raise HTTPException(status_code=404, detail="Explanation not found")
+        
+        doc["_id"] = str(doc["_id"])
+        created = doc.get("created_at")
+        updated = doc.get("updated_at")
+        if isinstance(created, datetime):
+            doc["created_at"] = created.isoformat()
+        if isinstance(updated, datetime):
+            doc["updated_at"] = updated.isoformat()
+        
+        logger.info(f"[EXPLAINER HISTORY DETAIL] Retrieved explanation {explainer_id}")
+        logger.info("=" * 80)
+        
+        return {"success": True, "explanation": doc}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("=" * 80)
+        logger.error(f"[EXPLAINER HISTORY DETAIL ERROR] {type(e).__name__}: {str(e)}")
+        logger.error("=" * 80, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to load explanation: {str(e)}")

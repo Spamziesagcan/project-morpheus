@@ -134,9 +134,9 @@ export default function MockInterviewPage() {
             <div className="space-y-6">
               {isGeneratingReport ? (
                 <div className="mx-auto max-w-2xl text-center">
-                  <div className="rounded-2xl border border-border bg-card p-10 shadow-[0_0_45px_rgba(56,189,248,0.4)]">
+                  <div className="rounded-2xl border-2 border-border bg-card p-10 shadow-[0_0_45px_rgba(56,189,248,0.4)]">
                     <div className="mx-auto mb-6 h-16 w-16 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent" />
-                    <h2 className="mb-3 text-2xl font-semibold text-foreground">
+                    <h2 className="mb-3 text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Generating report...
                     </h2>
                     <p className="font-mono text-xs text-cyan-300">{reportStep}</p>
@@ -154,7 +154,7 @@ export default function MockInterviewPage() {
               )}
 
               {reportError && (
-                <div className="mx-auto max-w-2xl rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-center text-sm text-red-300">
+                <div className="mx-auto max-w-2xl rounded-lg border-2 border-red-500/40 bg-red-500/10 p-4 text-center text-sm text-red-300">
                   {reportError}
                   <button
                     onClick={handleCallEnded}

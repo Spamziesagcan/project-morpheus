@@ -292,7 +292,7 @@ export default function CareerCounsellorPage() {
         <div className="px-6 py-4 border-b border-border/80 bg-card/60 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 font-mono tracking-[0.08em] uppercase">
                 AI Career Counsellor
                 <span className="text-xs bg-sky-500/10 text-sky-500 px-2 py-1 rounded-full font-normal">
                   Beta
@@ -316,7 +316,7 @@ export default function CareerCounsellorPage() {
               <div className="w-16 h-16 rounded-full bg-sky-500/10 flex items-center justify-center mb-4 shadow-[0_0_25px_rgba(56,189,248,0.8)]">
                 <Send className="w-8 h-8 text-sky-500" />
               </div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">
+              <h2 className="text-xl font-bold text-foreground mb-2 font-mono tracking-[0.08em] uppercase">
                 How can I help you today?
               </h2>
               <p className="text-foreground/60 max-w-md mb-6">
@@ -442,7 +442,7 @@ export default function CareerCounsellorPage() {
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_28px_rgba(56,189,248,0.8)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-xs font-bold text-white shadow-[0_0_28px_rgba(56,189,248,0.8)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.12em] uppercase"
               >
                 {isLoading ? (
                   <>

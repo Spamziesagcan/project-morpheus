@@ -6,7 +6,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   History,
   RefreshCcw,
   Download,
@@ -320,7 +319,7 @@ export default function PptMakerPage() {
               <Presentation className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">
+              <h1 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                 PPT Maker
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -333,7 +332,7 @@ export default function PptMakerPage() {
             <button
               onClick={fetchHistory}
               disabled={isLoadingHistory}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-2 text-xs font-medium text-slate-100 shadow-md shadow-black/40 hover:border-sky-500 hover:text-sky-200 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-700 bg-slate-900/70 px-4 py-2 text-xs font-bold text-slate-100 shadow-md shadow-black/40 hover:border-sky-500 hover:text-sky-200 disabled:cursor-not-allowed disabled:opacity-40 font-mono tracking-[0.12em] uppercase"
             >
               {isLoadingHistory ? (
                 <>
@@ -350,7 +349,7 @@ export default function PptMakerPage() {
             {step !== "input" && (
               <button
                 onClick={handleReset}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-transparent px-4 py-2 text-xs font-medium text-slate-200 hover:border-sky-500 hover:text-sky-300"
+                className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-700 bg-transparent px-4 py-2 text-xs font-bold text-slate-200 hover:border-sky-500 hover:text-sky-300 font-mono tracking-[0.12em] uppercase"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Start over
@@ -370,10 +369,9 @@ export default function PptMakerPage() {
           <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6 shadow-[0_0_40px_rgba(56,189,248,0.25)]">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/20 text-sky-400">
-                <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                   What&apos;s your presentation about?
                 </h2>
                 <p className="text-xs text-muted-foreground">
@@ -384,7 +382,7 @@ export default function PptMakerPage() {
 
             <div className="space-y-5">
               <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300 font-mono">
                   Presentation topic
                 </label>
                 <textarea
@@ -398,7 +396,7 @@ export default function PptMakerPage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300 font-mono">
                     Number of slides
                   </label>
                   <select
@@ -416,7 +414,7 @@ export default function PptMakerPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300 font-mono">
                     Language
                   </label>
                   <select
@@ -434,7 +432,7 @@ export default function PptMakerPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300 font-mono">
                     Tone
                   </label>
                   <select
@@ -455,7 +453,7 @@ export default function PptMakerPage() {
               <button
                 onClick={handleGenerateOutline}
                 disabled={isGeneratingOutline || !topic.trim()}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_30px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3 text-xs font-bold text-white shadow-[0_0_30px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.12em] uppercase"
               >
                 {isGeneratingOutline ? (
                   <>
@@ -464,7 +462,6 @@ export default function PptMakerPage() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4" />
                     Generate outline
                   </>
                 )}
@@ -478,7 +475,7 @@ export default function PptMakerPage() {
             <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80 p-5 shadow-[0_0_30px_rgba(15,23,42,0.7)]">
               <div className="mb-3 flex items-center gap-2">
                 <Edit3 className="h-4 w-4 text-sky-400" />
-                <h2 className="text-sm font-semibold text-foreground">
+                <h2 className="text-sm font-bold text-foreground font-mono tracking-[0.1em] uppercase">
                   Presentation title
                 </h2>
               </div>
@@ -493,7 +490,7 @@ export default function PptMakerPage() {
             <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80 p-5 shadow-[0_0_30px_rgba(15,23,42,0.7)]">
               <div className="mb-3 flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-foreground">
+                <h2 className="text-sm font-bold text-foreground font-mono tracking-[0.1em] uppercase">
                   Outline
                 </h2>
               </div>
@@ -517,7 +514,7 @@ export default function PptMakerPage() {
             <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80 p-5 shadow-[0_0_30px_rgba(15,23,42,0.7)]">
               <div className="mb-3 flex items-center gap-2">
                 <Palette className="h-4 w-4 text-sky-400" />
-                <h2 className="text-sm font-semibold text-foreground">
+                <h2 className="text-sm font-bold text-foreground font-mono tracking-[0.1em] uppercase">
                   Theme
                 </h2>
               </div>
@@ -541,7 +538,7 @@ export default function PptMakerPage() {
             <button
               onClick={handleGeneratePresentation}
               disabled={isGeneratingPresentation}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_0_30px_rgba(129,140,248,0.7)] transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-5 py-3 text-xs font-bold text-white shadow-[0_0_30px_rgba(129,140,248,0.7)] transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.12em] uppercase"
             >
               {isGeneratingPresentation ? (
                 <>

@@ -114,13 +114,6 @@ const menuItems: {
   // Job Application
   {
     section: "Job Application",
-    name: "Career Fit Score",
-    href: "/dashboard/job-application/career-fit-score",
-    icon: "careerFit",
-    shortText: "Best-fit roles",
-  },
-  {
-    section: "Job Application",
     name: "Resume ATS Score",
     href: "/dashboard/job-application/resume-ats-score",
     icon: "ats",

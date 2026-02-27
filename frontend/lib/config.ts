@@ -97,5 +97,9 @@ export const API_ENDPOINTS = {
   EXPLAINER: {
     GENERATE: `${API_BASE_URL}/api/explainer/generate`,
     CHAT: `${API_BASE_URL}/api/explainer/chat`,
+    SAVE: `${API_BASE_URL}/api/explainer/save`,
+    HISTORY: `${API_BASE_URL}/api/explainer/history`,
+    HISTORY_DETAIL: (explainerId: number) =>
+      `${API_BASE_URL}/api/explainer/history/${explainerId}`,
   },
 } as const;

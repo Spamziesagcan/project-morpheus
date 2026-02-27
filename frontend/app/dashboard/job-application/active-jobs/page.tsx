@@ -306,7 +306,7 @@ export default function ActiveJobsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="mb-2 text-4xl font-bold text-foreground">
+            <h1 className="mb-2 text-4xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
               Job Opportunities
             </h1>
             <p className="text-muted-foreground">
@@ -326,16 +326,16 @@ export default function ActiveJobsPage() {
         </div>
 
         {refreshMessage && (
-          <div className="mb-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground">
+          <div className="mb-4 rounded-lg border-2 border-border bg-card px-4 py-3 text-sm text-foreground font-mono tracking-[0.05em]">
             {refreshMessage}
           </div>
         )}
 
-        <div className="mb-6 rounded-lg border border-border bg-card shadow-sm">
+        <div className="mb-6 rounded-lg border-2 border-border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b border-border p-4">
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-muted-foreground" />
-              <h3 className="font-semibold text-foreground">Filters</h3>
+              <h3 className="font-bold text-foreground font-mono tracking-[0.1em] uppercase">Filters</h3>
               <span className="text-sm text-muted-foreground">
                 ({filteredJobs.length} jobs)
               </span>
@@ -366,19 +366,19 @@ export default function ActiveJobsPage() {
                   placeholder="Search by company or job title..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-10 py-2 text-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/40"
+                  className="w-full rounded-lg border-2 border-border bg-background px-10 py-2 text-foreground font-mono tracking-[0.05em] outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Source
                   </label>
                   <select
                     value={filterSource}
                     onChange={(e) => setFilterSource(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/40"
+                    className="w-full rounded-lg border-2 border-border bg-background px-3 py-2 text-foreground font-mono tracking-[0.05em] focus:border-primary focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">All sources</option>
                     <option value="linkedin">LinkedIn</option>
@@ -390,13 +390,13 @@ export default function ActiveJobsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Location
                   </label>
                   <select
                     value={filterLocation}
                     onChange={(e) => setFilterLocation(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/40"
+                    className="w-full rounded-lg border-2 border-border bg-background px-3 py-2 text-foreground font-mono tracking-[0.05em] focus:border-primary focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">All locations</option>
                     {uniqueLocations.map((location) => (
@@ -408,13 +408,13 @@ export default function ActiveJobsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Job type
                   </label>
                   <select
                     value={filterJobType}
                     onChange={(e) => setFilterJobType(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/40"
+                    className="w-full rounded-lg border-2 border-border bg-background px-3 py-2 text-foreground font-mono tracking-[0.05em] focus:border-primary focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="all">All types</option>
                     <option value="full-time">Full-time</option>
@@ -438,13 +438,13 @@ export default function ActiveJobsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Min salary
                   </label>
                   <select
                     value={filterMinSalary}
                     onChange={(e) => setFilterMinSalary(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:ring-2 focus:ring-primary/40"
+                    className="w-full rounded-lg border-2 border-border bg-background px-3 py-2 text-foreground font-mono tracking-[0.05em] focus:border-primary focus:ring-2 focus:ring-primary/40"
                   >
                     <option value="0">Any salary</option>
                     <option value="90000">$90,000+</option>
@@ -476,7 +476,7 @@ export default function ActiveJobsPage() {
                   <div className="mb-4 flex items-start justify-between">
                     <div className="flex-1">
                       <div className="mb-2 flex items-center gap-3">
-                        <h3 className="text-xl font-semibold text-foreground">
+                        <h3 className="text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                           {job.title}
                         </h3>
                         <span
@@ -614,7 +614,7 @@ export default function ActiveJobsPage() {
         {filteredJobs.length === 0 && (
           <div className="py-12 text-center">
             <Briefcase className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-            <h3 className="mb-2 text-xl font-semibold text-foreground">
+            <h3 className="mb-2 text-xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
               No jobs found
             </h3>
             <p className="text-muted-foreground">

@@ -277,8 +277,8 @@ export default function FlashcardsPage() {
             <Layers className="h-6 w-6 text-primary" />
           </div>
           <div>
-      <h1 className="text-2xl font-semibold text-foreground">Flashcards</h1>
-            <p className="text-sm text-muted-foreground">
+      <h1 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">Flashcards</h1>
+            <p className="text-xs text-muted-foreground font-mono tracking-[0.1em] uppercase">
               Upload a PDF, paste a URL, or enter text to generate flashcards.
             </p>
           </div>
@@ -296,7 +296,7 @@ export default function FlashcardsPage() {
         <div className="mb-4 flex gap-3">
           <button
             onClick={() => setInputMode("text")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold font-mono tracking-[0.1em] uppercase ${
               inputMode === "text"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"
@@ -307,7 +307,7 @@ export default function FlashcardsPage() {
           </button>
           <button
             onClick={() => setInputMode("pdf")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold font-mono tracking-[0.1em] uppercase ${
               inputMode === "pdf"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"
@@ -318,7 +318,7 @@ export default function FlashcardsPage() {
           </button>
           <button
             onClick={() => setInputMode("url")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold font-mono tracking-[0.1em] uppercase ${
               inputMode === "url"
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"
@@ -335,7 +335,7 @@ export default function FlashcardsPage() {
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             placeholder="Paste your study material here (minimum ~100 characters)..."
-            className="mt-2 h-48 w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="mt-2 h-48 w-full resize-none rounded-lg border-2 border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground font-mono tracking-[0.05em] outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         )}
 
@@ -365,7 +365,7 @@ export default function FlashcardsPage() {
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             placeholder="https://example.com/article-or-blog-post"
-            className="mt-2 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="mt-2 w-full rounded-lg border-2 border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground font-mono tracking-[0.05em] outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         )}
 
@@ -381,7 +381,7 @@ export default function FlashcardsPage() {
           </button>
           <button
             onClick={proceedToSettings}
-            className="inline-flex items-center gap-2 rounded-lg shiny-blue-bg px-4 py-2 text-sm font-semibold text-white shadow-[0_0_18px_rgba(56,189,248,0.7)] transition hover:opacity-95"
+            className="inline-flex items-center gap-2 rounded-lg shiny-blue-bg px-4 py-2 text-xs font-bold text-white shadow-[0_0_18px_rgba(56,189,248,0.7)] transition hover:opacity-95 font-mono tracking-[0.12em] uppercase"
           >
             Next: Settings
             <ArrowRight className="h-4 w-4" />
@@ -393,7 +393,7 @@ export default function FlashcardsPage() {
 
   const renderSettings = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-foreground">Flashcard settings</h2>
+      <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">Flashcard settings</h2>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
@@ -403,7 +403,7 @@ export default function FlashcardsPage() {
 
       <div className="space-y-6 rounded-xl border border-border bg-card p-6">
         <div>
-          <label className="mb-2 block text-sm font-medium text-foreground">
+          <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
             Number of flashcards
           </label>
           <input
@@ -420,7 +420,7 @@ export default function FlashcardsPage() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-foreground">
+          <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
             Max words per side
           </label>
           <input
@@ -441,7 +441,7 @@ export default function FlashcardsPage() {
         <div className="flex justify-between gap-3">
           <button
             onClick={() => setStep("input")}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-sm transition hover:bg-card/80"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-3 py-2 text-xs font-bold text-foreground shadow-sm transition hover:bg-card/80 font-mono tracking-[0.12em] uppercase"
           >
             <ArrowRight className="h-4 w-4 rotate-180" />
             Back to content
@@ -483,7 +483,7 @@ export default function FlashcardsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-semibold text-foreground">
+            <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
               Study mode
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -510,7 +510,7 @@ export default function FlashcardsPage() {
             </button>
             <button
               onClick={resetAll}
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-sm transition hover:bg-card/80"
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-3 py-2 text-xs font-bold text-foreground shadow-sm transition hover:bg-card/80 font-mono tracking-[0.12em] uppercase"
             >
               Reset
             </button>

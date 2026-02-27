@@ -24,7 +24,6 @@ import {
   Loader2,
   PlayCircle,
   Save,
-  Sparkles,
   Trash2,
   X,
   Youtube,
@@ -553,19 +552,16 @@ export default function RoadmapGeneratorPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-2xl">
             <div className="mb-8 text-center">
-              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/10 shadow-[0_0_25px_rgba(56,189,248,0.7)]">
-                <Sparkles className="h-8 w-8 text-sky-500" />
-              </div>
-              <h1 className="mb-3 text-4xl font-bold text-foreground">
+              <h1 className="mb-3 text-4xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                 AI Learning Roadmap
               </h1>
-              <p className="text-lg text-foreground/60">
+              <p className="text-sm text-foreground/60 font-mono tracking-[0.1em] uppercase">
                 Generate a personalized learning path with curated courses and videos.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card/80 p-6 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
-              <label className="mb-3 block text-sm font-semibold text-foreground">
+            <div className="rounded-2xl border-2 border-border bg-card/80 p-6 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
+              <label className="mb-3 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                 What do you want to learn?
               </label>
               <input
@@ -573,7 +569,7 @@ export default function RoadmapGeneratorPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g., React, Machine Learning, Python..."
-                className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground/40 outline-none ring-0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40"
+                className="w-full rounded-lg border-2 border-border bg-background px-4 py-3 text-foreground placeholder:text-foreground/40 font-mono text-sm tracking-[0.05em] outline-none ring-0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") generateRoadmap();
                 }}
@@ -582,7 +578,7 @@ export default function RoadmapGeneratorPage() {
               <button
                 onClick={generateRoadmap}
                 disabled={isGenerating || !topic.trim()}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_30px_rgba(56,189,248,0.8)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-xs font-bold text-white shadow-[0_0_30px_rgba(56,189,248,0.8)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.15em] uppercase"
               >
                 {isGenerating ? (
                   <>
@@ -590,10 +586,7 @@ export default function RoadmapGeneratorPage() {
                     Generating roadmap...
                   </>
                 ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Generate learning path
-                  </>
+                  <>Generate learning path</>
                 )}
               </button>
             </div>
@@ -603,12 +596,12 @@ export default function RoadmapGeneratorPage() {
 
       {step === "roadmap" && (
         <div className="flex-1 flex flex-col gap-4">
-          <div className="flex items-center justify-between rounded-xl border border-border bg-card/80 px-6 py-4 shadow-sm">
+          <div className="flex items-center justify-between rounded-xl border-2 border-border bg-card/80 px-6 py-4 shadow-sm">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">
+              <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                 {topic} Learning Roadmap
               </h2>
-              <p className="mt-1 text-sm text-foreground/60">
+              <p className="mt-1 text-xs text-foreground/60 font-mono tracking-[0.1em] uppercase">
                 Click on any node to view resources from YouTube, Udemy, Coursera, blogs and Reddit.
               </p>
             </div>
@@ -616,7 +609,7 @@ export default function RoadmapGeneratorPage() {
               <button
                 onClick={saveRoadmap}
                 disabled={isSaving}
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-card/80"
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-border bg-card px-5 py-2 text-xs font-bold text-foreground shadow-sm transition hover:bg-card/80 font-mono tracking-[0.12em] uppercase"
               >
                 {isSaving ? (
                   <>
@@ -632,7 +625,7 @@ export default function RoadmapGeneratorPage() {
               </button>
               <button
                 onClick={resetAll}
-                className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2 text-sm font-medium text-white shadow-[0_0_24px_rgba(56,189,248,0.7)] transition hover:bg-sky-400"
+                className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2 text-xs font-bold text-white shadow-[0_0_24px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 font-mono tracking-[0.12em] uppercase"
               >
                 New Topic
               </button>
@@ -664,9 +657,9 @@ export default function RoadmapGeneratorPage() {
               />
               <Panel
                 position="top-center"
-                className="rounded-lg border border-border bg-card/90 px-4 py-2 shadow-sm"
+                className="rounded-lg border-2 border-border bg-card/90 px-4 py-2 shadow-sm"
               >
-                <p className="text-sm font-semibold text-foreground">
+                <p className="text-xs font-bold text-foreground font-mono tracking-[0.1em] uppercase">
                   💡 Click any node to view learning resources
                 </p>
               </Panel>
@@ -676,12 +669,12 @@ export default function RoadmapGeneratorPage() {
           {showResourcesPanel && selectedNode && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
               <div className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-                <div className="flex items-center justify-between border-b border-border bg-card px-6 py-5">
+                <div className="flex items-center justify-between border-b-2 border-border bg-card px-6 py-5">
                   <div>
-                    <h2 className="text-2xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       {selectedNode.topic}
                     </h2>
-                    <p className="mt-1 text-sm text-foreground/60">
+                    <p className="mt-1 text-xs text-foreground/60 font-mono tracking-[0.1em] uppercase">
                       {selectedNode.resources.length} resource
                       {selectedNode.resources.length !== 1 ? "s" : ""} available
                     </p>
@@ -701,7 +694,7 @@ export default function RoadmapGeneratorPage() {
                     </div>
                   ) : (
                     <>
-                      <div className="mb-4 inline-flex flex-wrap gap-1 rounded-full border border-border bg-background p-1 text-xs font-medium">
+                      <div className="mb-4 inline-flex flex-wrap gap-1 rounded-full border-2 border-border bg-background p-1 text-xs font-bold font-mono tracking-[0.1em] uppercase">
                         <button
                           onClick={() => setResourceTab("all")}
                           className={`px-3 py-1 rounded-full transition ${
@@ -809,23 +802,23 @@ export default function RoadmapGeneratorPage() {
                           )}
                           <div className="min-w-0 flex-1">
                             <div className="mb-2 flex items-start justify-between gap-2">
-                              <h3 className="line-clamp-2 font-semibold text-foreground">
+                              <h3 className="line-clamp-2 font-bold text-foreground font-mono text-sm tracking-[0.05em]">
                                 {resource.title}
                               </h3>
                               <a
                                 href={resource.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-medium text-white shadow-[0_0_18px_rgba(56,189,248,0.7)] transition hover:bg-sky-400"
+                                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-bold text-white shadow-[0_0_18px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 font-mono tracking-[0.1em] uppercase"
                               >
                                 <PlayCircle className="h-4 w-4" />
                                 Open
                               </a>
                             </div>
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/60">
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/60 font-mono tracking-[0.05em]">
                               <div className="flex items-center gap-1">
                                 <Youtube className="h-4 w-4 text-foreground/60" />
-                                <span className="font-medium">
+                                <span className="font-bold uppercase">
                                   {resource.platform}
                                 </span>
                               </div>
@@ -836,11 +829,11 @@ export default function RoadmapGeneratorPage() {
                                 </div>
                               )}
                               {resource.is_free ? (
-                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-500">
+                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-500 font-mono tracking-[0.1em] uppercase">
                                   Free
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-500">
+                                <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-bold text-amber-500 font-mono tracking-[0.1em] uppercase">
                                   Paid
                                 </span>
                               )}
@@ -867,7 +860,7 @@ export default function RoadmapGeneratorPage() {
       <button
         onClick={loadPastRoadmaps}
         disabled={loadingPastRoadmaps}
-        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full border-2 border-sky-500 bg-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_30px_rgba(56,189,248,0.9)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full border-2 border-sky-500 bg-sky-500 px-4 py-3 text-xs font-bold text-white shadow-[0_0_30px_rgba(56,189,248,0.9)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60 font-mono tracking-[0.12em] uppercase"
       >
         {loadingPastRoadmaps ? (
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -887,10 +880,10 @@ export default function RoadmapGeneratorPage() {
             onClick={() => setShowPastRoadmaps(false)}
           />
           <div className="fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-card shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border bg-card px-6 py-5">
+            <div className="flex items-center justify-between border-b-2 border-border bg-card px-6 py-5">
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Past roadmaps</h2>
-                <p className="mt-1 text-sm text-foreground/60">
+                <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">Past roadmaps</h2>
+                <p className="mt-1 text-xs text-foreground/60 font-mono tracking-[0.1em] uppercase">
                   {pastRoadmaps.length} saved roadmap
                   {pastRoadmaps.length !== 1 ? "s" : ""}
                 </p>
@@ -921,10 +914,10 @@ export default function RoadmapGeneratorPage() {
                     >
                       <div className="space-y-3">
                         <div>
-                          <h3 className="mb-1 line-clamp-2 text-base font-bold text-foreground">
+                          <h3 className="mb-1 line-clamp-2 text-base font-bold text-foreground font-mono tracking-[0.05em] uppercase">
                             {roadmap.topic}
                           </h3>
-                          <div className="flex items-center gap-3 text-xs text-foreground/60">
+                          <div className="flex items-center gap-3 text-xs text-foreground/60 font-mono tracking-[0.05em]">
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               <span>
@@ -938,7 +931,6 @@ export default function RoadmapGeneratorPage() {
                               </span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Sparkles className="h-3 w-3" />
                               <span>{roadmap.node_count} topics</span>
                             </div>
                           </div>
@@ -946,7 +938,7 @@ export default function RoadmapGeneratorPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => loadRoadmap(roadmap.id)}
-                            className="flex-1 rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-sky-400"
+                            className="flex-1 rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-white transition hover:bg-sky-400 font-mono tracking-[0.1em] uppercase"
                           >
                             Load roadmap
                           </button>

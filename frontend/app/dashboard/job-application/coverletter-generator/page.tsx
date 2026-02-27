@@ -386,13 +386,13 @@ Nice to have:
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
           Job application
         </h1>
           <button
             type="button"
             onClick={() => router.push("/dashboard/applications")}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition hover:bg-card/80"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground shadow-sm transition hover:bg-card/80 font-mono tracking-[0.12em] uppercase"
           >
             My applications
           </button>
@@ -406,7 +406,7 @@ Nice to have:
             <div className="flex-1">
               <div className="mb-4 grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Job title
                   </label>
                   <input
@@ -416,11 +416,11 @@ Nice to have:
                       setJobData((prev) => ({ ...prev, title: e.target.value }))
                     }
                     placeholder="Senior Software Engineer"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-lg border-2 border-border bg-background px-3 py-2 text-foreground font-mono tracking-[0.05em] outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-foreground">
+                  <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                     Company
                   </label>
                   <input
@@ -430,7 +430,7 @@ Nice to have:
                       setJobData((prev) => ({ ...prev, company: e.target.value }))
                     }
                     placeholder="Acme Corp"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
+                    className="w-full rounded-lg border-2 border-border bg-background px-3 py-2 text-foreground font-mono tracking-[0.05em] outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
               </div>
@@ -502,7 +502,7 @@ Nice to have:
               <div className="grid gap-8 lg:grid-cols-2">
                 <div>
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Tailored resume
                     </h2>
                     <button
@@ -524,7 +524,7 @@ Nice to have:
 
                 <div>
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-foreground">
+                    <h2 className="text-2xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Cover letter
                     </h2>
                     <div className="flex items-center gap-2">
@@ -568,11 +568,11 @@ Nice to have:
                   </div>
 
                   <div className="space-y-4 rounded-lg bg-card p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className="text-lg font-bold text-foreground font-mono tracking-[0.08em] uppercase">
                       Edit cover letter
                     </h3>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-foreground">
+                      <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                         Greeting
                       </label>
                       <input
@@ -586,7 +586,7 @@ Nice to have:
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-foreground">
+                      <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                         Opening paragraph
                       </label>
                       <textarea
@@ -604,7 +604,7 @@ Nice to have:
 
                     {coverLetter.body_paragraphs.map((para, index) => (
                       <div key={index}>
-                        <label className="mb-2 block text-sm font-medium text-foreground">
+                        <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                           Body paragraph {index + 1}
                         </label>
                         <textarea
@@ -619,7 +619,7 @@ Nice to have:
                     ))}
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-foreground">
+                      <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                         Closing paragraph
                       </label>
                       <textarea
@@ -636,7 +636,7 @@ Nice to have:
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-foreground">
+                      <label className="mb-2 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                         Signature
                       </label>
                       <input

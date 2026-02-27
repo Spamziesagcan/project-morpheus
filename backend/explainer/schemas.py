@@ -14,3 +14,10 @@ class ExplainerChatRequest(BaseModel):
 class ExplainerChatResponse(BaseModel):
     answer: str
     relevant_section: Optional[str] = None
+
+
+class SaveExplainerRequest(BaseModel):
+    explanation: Dict[str, Any]
+    original_content: str
+    content_source: str
+    complexity: str

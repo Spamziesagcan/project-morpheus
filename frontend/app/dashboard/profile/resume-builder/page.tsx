@@ -399,7 +399,7 @@ export default function ResumeBuilderProfilePage() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3 font-mono tracking-[0.08em] uppercase">
           AI Resume Builder
         </h1>
         <p className="text-foreground/60 mt-1">
@@ -410,7 +410,7 @@ export default function ResumeBuilderProfilePage() {
 
       {/* Upload Section */}
       <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
-        <h2 className="text-xl font-semibold text-black dark:text-white mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center gap-2 font-mono tracking-[0.08em] uppercase">
           <Upload className="w-5 h-5 text-blue-500" />
           Upload Resume (Optional)
         </h2>
@@ -499,7 +499,7 @@ export default function ResumeBuilderProfilePage() {
       {/* Links Section */}
       <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white">
+          <h2 className="text-xl font-bold text-black dark:text-white font-mono tracking-[0.08em] uppercase">
             Links
           </h2>
           <button
@@ -514,7 +514,7 @@ export default function ResumeBuilderProfilePage() {
         {showAddLink && (
           <div className="mb-4 p-4 bg-black/5 dark:bg-white/5 backdrop-blur-sm border-2 border-black/20 dark:border-white/20 rounded-lg space-y-3">
             <div>
-              <label className="block text-sm font-medium text-black dark:text-white mb-1">
+              <label className="block text-xs font-bold text-black dark:text-white mb-1 font-mono tracking-[0.12em] uppercase">
                 Link Type
               </label>
               <select
@@ -598,7 +598,7 @@ export default function ResumeBuilderProfilePage() {
       {/* Experience Section */}
       <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white">
+          <h2 className="text-xl font-bold text-black dark:text-white font-mono tracking-[0.08em] uppercase">
             Experience
           </h2>
           <button
@@ -632,7 +632,7 @@ export default function ResumeBuilderProfilePage() {
             />
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-black dark:text-white mb-1">
+                <label className="block text-xs font-bold text-black dark:text-white mb-1 font-mono tracking-[0.12em] uppercase">
                   Start Date
                 </label>
                 <input
@@ -645,7 +645,7 @@ export default function ResumeBuilderProfilePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-black dark:text-white mb-1">
+                <label className="block text-xs font-bold text-black dark:text-white mb-1 font-mono tracking-[0.12em] uppercase">
                   End Date
                 </label>
                 <input
@@ -758,7 +758,7 @@ export default function ResumeBuilderProfilePage() {
       {/* Education Section */}
       <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white">
+          <h2 className="text-xl font-bold text-black dark:text-white font-mono tracking-[0.08em] uppercase">
             Education
           </h2>
           <button
@@ -849,7 +849,7 @@ export default function ResumeBuilderProfilePage() {
       {/* Projects Section */}
       <div className="bg-white dark:bg-black backdrop-blur-lg border-2 border-black/20 dark:border-white/20 rounded-xl p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-black dark:text-white">
+          <h2 className="text-xl font-bold text-black dark:text-white font-mono tracking-[0.08em] uppercase">
             Projects
           </h2>
           <button

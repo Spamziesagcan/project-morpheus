@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import {
-  Mail,
-  Search,
-  Loader2,
   CheckCircle2,
-  XCircle,
-  Send,
+  CheckSquare,
   FileText,
+  Loader2,
+  Mail,
+  Plus,
+  Search,
+  Send,
   Settings,
   Sparkles,
-  CheckSquare,
   Square,
-  Plus,
 } from "lucide-react";
+
 import { API_ENDPOINTS } from "@/lib/config";
 
 interface Company {
@@ -30,7 +30,7 @@ export default function ColdMailSenderPage() {
   const [searching, setSearching] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [smtpEmail, setSmtpEmail] = useState("");
   const [smtpPassword, setSmtpPassword] = useState("");
@@ -39,12 +39,27 @@ export default function ColdMailSenderPage() {
   const [emailBody, setEmailBody] = useState("");
   const [generatingTemplate, setGeneratingTemplate] = useState(false);
   const [sending, setSending] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
 
   const handleSearch = async () => {
     if (!companyType.trim()) {
       setError("Please enter a company type");
+      showToast("Please enter a company type", "error");
       return;
     }
 
@@ -65,18 +80,20 @@ export default function ColdMailSenderPage() {
         body: JSON.stringify({ company_type: companyType }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to search companies");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.message || "Failed to search companies");
       }
 
-      const data = await response.json();
       setCompanies(data.companies || []);
-      setSuccess(`Found ${data.companies?.length || 0} companies with emails`);
+      const msg = `Found ${data.companies?.length || 0} companies with emails`;
+      setSuccess(msg);
+      showToast(msg, "success");
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to search companies"
-      );
+      const msg =
+        err instanceof Error ? err.message : "Failed to search companies";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setSearching(false);
     }
@@ -84,7 +101,10 @@ export default function ColdMailSenderPage() {
 
   const handleGenerateTemplate = async () => {
     if (!smtpEmail || !selectedCompanies.size) {
-      setError("Please configure SMTP email and select at least one company");
+      const msg =
+        "Please configure SMTP email and select at least one company before generating a template";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
@@ -97,8 +117,7 @@ export default function ColdMailSenderPage() {
 
     try {
       const token = localStorage.getItem("token");
-
-      const profileResponse = await fetch(API_ENDPOINTS.PROFILE.GET, {
+      const profileResponse = await fetch(`${API_ENDPOINTS.PROFILE.GET}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const profileData = await profileResponse.json();
@@ -116,27 +135,29 @@ export default function ColdMailSenderPage() {
           },
           body: JSON.stringify({
             company_name: company.company_name,
-            user_name: profileData.name || "Candidate",
+            user_name: profileData.full_name || profileData.name || "Candidate",
             user_email: smtpEmail,
             user_bio: profileData.bio || "",
             user_skills: skills,
           }),
-        }
+        },
       );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to generate template");
-      }
 
       const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.message || "Failed to generate template");
+      }
+
       setEmailSubject(data.subject);
-      setEmailBody(data.body.replace(/\\n/g, "\n"));
-      setSuccess("Email template generated successfully!");
+      setEmailBody((data.body || "").replace(/\\n/g, "\n"));
+      const msg = "Email template generated successfully!";
+      setSuccess(msg);
+      showToast(msg, "success");
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to generate template"
-      );
+      const msg =
+        err instanceof Error ? err.message : "Failed to generate template";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setGeneratingTemplate(false);
     }
@@ -144,15 +165,21 @@ export default function ColdMailSenderPage() {
 
   const handleSendEmails = async () => {
     if (!smtpEmail || !smtpPassword) {
-      setError("Please configure SMTP settings");
+      const msg = "Please configure SMTP settings";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
     if (!emailSubject || !emailBody) {
-      setError("Please generate or enter email subject and body");
+      const msg = "Please generate or enter email subject and body";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
     if (selectedCompanies.size === 0) {
-      setError("Please select at least one company");
+      const msg = "Please select at least one company";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
@@ -167,7 +194,7 @@ export default function ColdMailSenderPage() {
       if (resumeFile) {
         const arrayBuffer = await resumeFile.arrayBuffer();
         const base64 = btoa(
-          String.fromCharCode(...new Uint8Array(arrayBuffer))
+          String.fromCharCode(...new Uint8Array(arrayBuffer)),
         );
         resumeBase64 = base64;
       }
@@ -203,47 +230,44 @@ export default function ColdMailSenderPage() {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to send emails");
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || data.message || "Failed to send emails");
       }
 
-      const data = await response.json();
-      setSuccess(
-        `Successfully sent ${data.sent} emails. ${data.failed} failed.`
-      );
+      const msg = `Successfully sent ${data.sent} emails. ${data.failed} failed.`;
+      setSuccess(msg);
+      showToast(msg, "success");
 
       const updatedCompanies = [...companies];
       data.results.forEach((result: any) => {
-        const companyIndex = companiesToSend.findIndex(
-          (c) => c.company_name === result.company_name
+        const originalIndex = companies.findIndex(
+          (c) => c.company_name === result.company_name,
         );
-        if (companyIndex !== -1) {
-          const originalIndex = Array.from(selectedCompanies)[companyIndex];
-          if (originalIndex !== undefined) {
-            updatedCompanies[originalIndex].status = result.status;
-          }
+        if (originalIndex !== -1) {
+          updatedCompanies[originalIndex].status = result.status;
         }
       });
       setCompanies(updatedCompanies);
       setSelectedCompanies(new Set());
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to send emails"
-      );
+      const msg =
+        err instanceof Error ? err.message : "Failed to send emails";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setSending(false);
     }
   };
 
   const toggleCompanySelection = (index: number) => {
-    const newSelected = new Set(selectedCompanies);
-    if (newSelected.has(index)) {
-      newSelected.delete(index);
+    const next = new Set(selectedCompanies);
+    if (next.has(index)) {
+      next.delete(index);
     } else {
-      newSelected.add(index);
+      next.add(index);
     }
-    setSelectedCompanies(newSelected);
+    setSelectedCompanies(next);
   };
 
   const selectAll = () => {
@@ -261,25 +285,25 @@ export default function ColdMailSenderPage() {
     switch (status) {
       case "email_found":
         return (
-          <span className="px-2 py-1 bg-green-500/20 text-green-500 rounded text-xs">
-            Email Found
+          <span className="rounded bg-green-500/20 px-2 py-1 text-xs text-green-500">
+            Email found
           </span>
         );
       case "no_email":
         return (
-          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-500 rounded text-xs">
-            No Email
+          <span className="rounded bg-yellow-500/20 px-2 py-1 text-xs text-yellow-500">
+            No email
           </span>
         );
       case "scraping_failed":
         return (
-          <span className="px-2 py-1 bg-red-500/20 text-red-500 rounded text-xs">
+          <span className="rounded bg-red-500/20 px-2 py-1 text-xs text-red-500">
             Failed
           </span>
         );
       case "sent":
         return (
-          <span className="px-2 py-1 bg-blue-500/20 text-blue-500 rounded text-xs">
+          <span className="rounded bg-blue-500/20 px-2 py-1 text-xs text-blue-500">
             Sent
           </span>
         );
@@ -290,166 +314,146 @@ export default function ColdMailSenderPage() {
 
   return (
     <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+      <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-foreground rounded-lg">
-              <Mail className="w-6 h-6 text-background" />
+          <div className="mb-3 flex items-center gap-3">
+            <div className="rounded-lg bg-foreground p-2">
+              <Mail className="h-6 w-6 text-background" />
             </div>
             <h1 className="text-3xl font-bold text-foreground">
               Cold Mail Outreach
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-lg text-muted-foreground">
             Find companies, extract emails, and send personalized cold emails
             with your resume.
           </p>
         </div>
 
-        {/* Error/Success Messages */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-600 dark:text-red-400 font-medium">
-              {error}
-            </p>
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            {error}
           </div>
         )}
         {success && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <p className="text-green-600 dark:text-green-400 font-medium">
-              {success}
-            </p>
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
+            {success}
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Configuration */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Company Search */}
-            <div className="bg-card border border-border rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Search Companies
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-1">
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-foreground">
+                <Search className="h-5 w-5" />
+                Search companies
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Company Type
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    Company type
                   </label>
                   <select
                     value={companyType}
                     onChange={(e) => setCompanyType(e.target.value)}
-                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                     disabled={searching}
                   >
                     <option value="">Select company type...</option>
-                    <option value="AI startups">AI Startups</option>
-                    <option value="Fintech companies">Fintech Companies</option>
-                    <option value="SaaS startups">SaaS Startups</option>
-                    <option value="Healthcare tech">Healthcare Tech</option>
-                    <option value="EdTech companies">EdTech Companies</option>
-                    <option value="E-commerce startups">
-                      E-commerce Startups
-                    </option>
-                    <option value="Blockchain companies">
-                      Blockchain Companies
-                    </option>
+                    <option value="AI startups">AI startups</option>
+                    <option value="Fintech companies">Fintech companies</option>
+                    <option value="SaaS startups">SaaS startups</option>
+                    <option value="Healthcare tech">Healthcare tech</option>
+                    <option value="EdTech companies">EdTech companies</option>
+                    <option value="E-commerce startups">E-commerce startups</option>
+                    <option value="Blockchain companies">Blockchain companies</option>
                     <option value="Cybersecurity startups">
-                      Cybersecurity Startups
+                      Cybersecurity startups
                     </option>
-                    <option value="Biotech companies">Biotech Companies</option>
-                    <option value="CleanTech startups">CleanTech Startups</option>
-                    <option value="Robotics companies">
-                      Robotics Companies
-                    </option>
-                    <option value="Gaming startups">Gaming Startups</option>
-                    <option value="Media tech companies">
-                      Media Tech Companies
-                    </option>
-                    <option value="Real estate tech">Real Estate Tech</option>
-                    <option value="Food tech startups">
-                      Food Tech Startups
-                    </option>
+                    <option value="Biotech companies">Biotech companies</option>
+                    <option value="CleanTech startups">CleanTech startups</option>
+                    <option value="Robotics companies">Robotics companies</option>
+                    <option value="Gaming startups">Gaming startups</option>
+                    <option value="Media tech companies">Media tech companies</option>
+                    <option value="Real estate tech">Real estate tech</option>
+                    <option value="Food tech startups">Food tech startups</option>
                     <option value="Travel tech companies">
-                      Travel Tech Companies
+                      Travel tech companies
                     </option>
                   </select>
                 </div>
                 <button
                   onClick={handleSearch}
                   disabled={searching || !companyType.trim()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0a7fff] text-white rounded-lg hover:bg-[#0966d9] transition disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_20px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {searching ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                       Searching...
                     </>
                   ) : (
                     <>
-                      <Search className="w-5 h-5" />
-                      Search Companies
+                      <Search className="h-5 w-5" />
+                      Search companies
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* SMTP Configuration */}
-            <div className="bg-card border border-border rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  SMTP Settings
+            <div className="rounded-xl border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-foreground">
+                  <Settings className="h-5 w-5" />
+                  SMTP settings
                 </h2>
                 <button
                   onClick={() => {
                     setSmtpEmail("kavish17shah@gmail.com");
                     setSmtpPassword("iwgd fbvl xxfj ojty");
                   }}
-                  className="p-2 bg-[#0a7fff] text-white rounded-lg hover:bg-[#0966d9] transition"
+                  className="rounded-lg bg-sky-500 p-2 text-white hover:bg-sky-400"
                   title="Auto-fill SMTP credentials"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Your Email <span className="text-red-500">*</span>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    Your email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     value={smtpEmail}
                     onChange={(e) => setSmtpEmail(e.target.value)}
                     placeholder="your.email@gmail.com"
-                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    SMTP Password <span className="text-red-500">*</span>
+                  <label className="mb-2 block text-sm font-medium text-foreground">
+                    SMTP password <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
                     value={smtpPassword}
                     onChange={(e) => setSmtpPassword(e.target.value)}
                     placeholder="App password or SMTP password"
-                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For Gmail, use an App Password
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    For Gmail, use an app password.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Resume Upload */}
-            <div className="bg-card border border-border rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Resume (Optional)
+            <div className="rounded-xl border border-border bg-card p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-foreground">
+                <FileText className="h-5 w-5" />
+                Resume (optional)
               </h2>
               <div className="space-y-4">
                 <input
@@ -458,11 +462,11 @@ export default function ColdMailSenderPage() {
                   onChange={(e) =>
                     setResumeFile(e.target.files?.[0] || null)
                   }
-                  className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-foreground file:text-background hover:file:opacity-90"
+                  className="w-full text-sm text-foreground file:mr-4 file:rounded-lg file:border-0 file:bg-foreground file:px-4 file:py-2 file:text-sm file:font-semibold file:text-background hover:file:opacity-90"
                 />
                 {resumeFile && (
-                  <p className="text-sm text-foreground flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  <p className="flex items-center gap-2 text-sm text-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     {resumeFile.name}
                   </p>
                 )}
@@ -470,35 +474,33 @@ export default function ColdMailSenderPage() {
             </div>
           </div>
 
-          {/* Right Column - Companies & Email */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Companies List */}
+          <div className="space-y-6 lg:col-span-2">
             {companies.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-foreground">
                     Companies ({companies.length})
                   </h2>
                   <div className="flex gap-2">
                     <button
                       onClick={selectAll}
-                      className="px-3 py-1 text-sm bg-foreground/10 text-foreground rounded hover:bg-foreground/20 transition"
+                      className="rounded bg-foreground/10 px-3 py-1 text-sm text-foreground hover:bg-foreground/20"
                     >
-                      Select All
+                      Select all
                     </button>
                     <button
                       onClick={deselectAll}
-                      className="px-3 py-1 text-sm bg-foreground/10 text-foreground rounded hover:bg-foreground/20 transition"
+                      className="rounded bg-foreground/10 px-3 py-1 text-sm text-foreground hover:bg-foreground/20"
                     >
-                      Deselect All
+                      Deselect all
                     </button>
                   </div>
                 </div>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="max-h-96 space-y-2 overflow-y-auto">
                   {companies.map((company, index) => (
                     <div
                       key={index}
-                      className={`p-4 border rounded-lg transition ${
+                      className={`rounded-lg border p-4 transition ${
                         selectedCompanies.has(index)
                           ? "border-foreground bg-foreground/5"
                           : "border-border hover:border-foreground/50"
@@ -510,34 +512,32 @@ export default function ColdMailSenderPage() {
                           className="mt-1"
                         >
                           {selectedCompanies.has(index) ? (
-                            <CheckSquare className="w-5 h-5 text-foreground" />
+                            <CheckSquare className="h-5 w-5 text-foreground" />
                           ) : (
-                            <Square className="w-5 h-5 text-muted-foreground" />
+                            <Square className="h-5 w-5 text-muted-foreground" />
                           )}
                         </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-foreground">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="truncate font-semibold text-foreground">
                                 {company.company_name}
                               </h3>
                               <a
                                 href={company.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm text-blue-500 hover:underline"
+                                className="text-sm text-sky-500 hover:underline"
                               >
                                 {company.website}
                               </a>
                             </div>
                             {getStatusBadge(company.status)}
                           </div>
-                          <div className="mt-2">
-                            <p className="text-sm text-foreground">
-                              <span className="font-medium">Emails:</span>{" "}
-                              {company.emails.join(", ")}
-                            </p>
-                          </div>
+                          <p className="mt-1 text-sm text-foreground">
+                            <span className="font-medium">Emails:</span>{" "}
+                            {company.emails.join(", ")}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -546,28 +546,25 @@ export default function ColdMailSenderPage() {
               </div>
             )}
 
-            {/* Email Template */}
             {companies.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-foreground">
-                    Email Template
+                    Email template
                   </h2>
                   <button
                     onClick={handleGenerateTemplate}
-                    disabled={
-                      generatingTemplate || selectedCompanies.size === 0
-                    }
-                    className="flex items-center gap-2 px-4 py-2 bg-[#0a7fff] text-white rounded-lg hover:bg-[#0966d9] transition disabled:opacity-50"
+                    disabled={generatingTemplate || selectedCompanies.size === 0}
+                    className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-[0_0_18px_rgba(56,189,248,0.7)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {generatingTemplate ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Generating...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
+                        <Sparkles className="h-4 w-4" />
                         Generate with AI
                       </>
                     )}
@@ -575,7 +572,7 @@ export default function ColdMailSenderPage() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="mb-2 block text-sm font-medium text-foreground">
                       Subject
                     </label>
                     <input
@@ -583,11 +580,11 @@ export default function ColdMailSenderPage() {
                       value={emailSubject}
                       onChange={(e) => setEmailSubject(e.target.value)}
                       placeholder="Email subject line"
-                      className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="mb-2 block text-sm font-medium text-foreground">
                       Body
                     </label>
                     <textarea
@@ -595,18 +592,16 @@ export default function ColdMailSenderPage() {
                       onChange={(e) => setEmailBody(e.target.value)}
                       placeholder="Email body..."
                       rows={10}
-                      className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-none"
+                      className="w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/30"
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Use {"{"}company_name{"}"} as placeholder for company
-                      name
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Use {"{company_name}"} as a placeholder for company name.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Send Button */}
             {companies.length > 0 &&
               selectedCompanies.size > 0 &&
               emailSubject &&
@@ -614,17 +609,17 @@ export default function ColdMailSenderPage() {
                 <button
                   onClick={handleSendEmails}
                   disabled={sending || !smtpEmail || !smtpPassword}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#0a7fff] text-white rounded-lg hover:bg-[#0966d9] transition disabled:opacity-50 text-lg font-semibold"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-6 py-4 text-lg font-semibold text-white shadow-[0_0_24px_rgba(56,189,248,0.8)] transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {sending ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Sending Emails...
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Sending emails...
                     </>
                   ) : (
                     <>
-                      <Send className="w-5 h-5" />
-                      Send to {selectedCompanies.size} Selected Companies
+                      <Send className="h-5 w-5" />
+                      Send to {selectedCompanies.size} selected companies
                     </>
                   )}
                 </button>
@@ -632,6 +627,20 @@ export default function ColdMailSenderPage() {
           </div>
         </div>
       </div>
+
+      {toastVisible && (
+        <div className="fixed bottom-5 left-0 right-0 z-50 flex items-center justify-center px-4">
+          <div
+            className={`max-w-md flex-1 rounded-xl px-4 py-3 text-sm shadow-lg ${
+              toastType === "success"
+                ? "bg-emerald-500 text-white"
+                : "bg-red-500 text-white"
+            }`}
+          >
+            {toastMessage}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

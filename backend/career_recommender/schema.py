@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class CareerRecommendationRequest(BaseModel):
@@ -25,9 +26,6 @@ class CareerPath(BaseModel):
 class CareerRecommendationResponse(BaseModel):
     recommendations: List[CareerPath]
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-
-
-# ============= CHAT & CONVERSATION SCHEMAS =============
 
 
 class MessageRole(str, Enum):
@@ -72,7 +70,7 @@ class Conversation(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    conversation_id: Optional[str] = None  # None for new conversation
+    conversation_id: Optional[str] = None
     user_id: str
     message: str
     attachments: Optional[List[ChatMessageAttachment]] = []
@@ -85,6 +83,6 @@ class ChatResponse(BaseModel):
 
 
 class ConversationListResponse(BaseModel):
-    conversations: List[Dict[str, Any]]  # Simplified conversation metadata
+    conversations: List[Dict[str, Any]]
     total: int
 

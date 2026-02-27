@@ -29,8 +29,9 @@ export default function ResumeAtsScorePage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] =
-    useState<AnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null,
+  );
   const [error, setError] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,10 +80,18 @@ export default function ResumeAtsScorePage() {
       }
 
       const data = await response.json();
-      setAnalysisResult(data);
+      setAnalysisResult({
+        ats_score: data.ats_score,
+        readiness_score: data.readiness_score,
+        match_percentage: data.match_percentage,
+        tips: data.tips || [],
+        gaps: data.gaps || [],
+        strengths: data.strengths || [],
+        recommendations: data.recommendations || [],
+      });
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Failed to analyze resume"
+        err instanceof Error ? err.message : "Failed to analyze resume",
       );
     } finally {
       setAnalyzing(false);
@@ -90,55 +99,53 @@ export default function ResumeAtsScorePage() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
+    if (score >= 80) return "text-emerald-500";
     if (score >= 60) return "text-yellow-500";
     return "text-red-500";
   };
 
   const getScoreBgColor = (score: number) => {
-    if (score >= 80) return "bg-green-500";
+    if (score >= 80) return "bg-emerald-500";
     if (score >= 60) return "bg-yellow-500";
     return "bg-red-500";
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-foreground rounded-lg">
-              <FileSearch className="w-6 h-6 text-background" />
+          <div className="mb-3 flex items-center gap-3">
+            <div className="rounded-lg bg-foreground p-2">
+              <FileSearch className="h-6 w-6 text-background" />
             </div>
             <h1 className="text-3xl font-bold text-foreground">
               Resume ATS Score
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg">
-            Upload your resume and job description to get AI-powered analysis
-            with ATS score, readiness score, and improvement tips.
+          <p className="text-lg text-muted-foreground">
+            Upload your resume and a job description to get an AI-powered ATS
+            score, readiness score, and concrete improvement tips.
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-600 dark:text-red-400 font-medium">
-              {error}
-            </p>
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            <p className="font-medium">{error}</p>
           </div>
         )}
 
         {/* Input Section */}
         {!analysisResult && (
-          <div className="bg-card border border-border rounded-xl p-8 mb-8">
+          <div className="mb-8 rounded-xl border border-border bg-card p-8">
             <div className="space-y-6">
               {/* Resume Upload */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-3">
+                <label className="mb-3 block text-sm font-semibold text-foreground">
                   Upload Resume (PDF) <span className="text-red-500">*</span>
                 </label>
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-foreground/50 transition">
+                <div className="rounded-lg border-2 border-dashed border-border p-6 text-center transition hover:border-foreground/50">
                   <input
                     type="file"
                     accept=".pdf"
@@ -149,11 +156,11 @@ export default function ResumeAtsScorePage() {
                   />
                   <label
                     htmlFor="resume-upload"
-                    className="cursor-pointer flex flex-col items-center gap-3"
+                    className="flex cursor-pointer flex-col items-center gap-3"
                   >
-                    <Upload className="w-12 h-12 text-muted-foreground" />
+                    <Upload className="h-12 w-12 text-muted-foreground" />
                     <div>
-                      <span className="text-foreground font-medium">
+                      <span className="font-medium text-foreground">
                         Click to upload
                       </span>
                       <span className="text-muted-foreground">
@@ -167,7 +174,7 @@ export default function ResumeAtsScorePage() {
                   </label>
                   {resumeFile && (
                     <div className="mt-4 flex items-center justify-center gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       <span>{resumeFile.name}</span>
                     </div>
                   )}
@@ -176,17 +183,17 @@ export default function ResumeAtsScorePage() {
 
               {/* Job Description */}
               <div>
-                <label className="block text-sm font-semibold text-foreground mb-3">
+                <label className="mb-3 block text-sm font-semibold text-foreground">
                   Job Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
                   placeholder="Paste the job description here..."
-                  className="w-full h-48 px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 resize-none"
+                  className="h-48 w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none ring-0 focus:border-primary focus:ring-2 focus:ring-primary/20"
                   disabled={analyzing}
                 />
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="mt-2 text-xs text-muted-foreground">
                   {jobDescription.length} characters
                 </p>
               </div>
@@ -194,20 +201,18 @@ export default function ResumeAtsScorePage() {
               {/* Analyze Button */}
               <button
                 onClick={handleAnalyze}
-                disabled={
-                  analyzing || !resumeFile || !jobDescription.trim()
-                }
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-foreground text-background rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
+                disabled={analyzing || !resumeFile || !jobDescription.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg shiny-blue-bg px-6 py-4 text-lg font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {analyzing ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Analyzing Resume...
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Analyzing resume...
                   </>
                 ) : (
                   <>
-                    <FileSearch className="w-5 h-5" />
-                    Analyze Resume
+                    <FileSearch className="h-5 w-5" />
+                    Analyze resume
                   </>
                 )}
               </button>
@@ -217,7 +222,7 @@ export default function ResumeAtsScorePage() {
 
         {/* Analysis Results */}
         {analysisResult && (
-          <div className="space-y-6">
+    <div className="space-y-6">
             {/* Action Buttons */}
             <div className="flex gap-4">
               <button
@@ -226,112 +231,102 @@ export default function ResumeAtsScorePage() {
                   setResumeFile(null);
                   setJobDescription("");
                 }}
-                className="px-4 py-2 bg-card border border-border rounded-lg text-foreground hover:bg-foreground/5 transition"
+                className="rounded-lg shiny-blue-border bg-card/80 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-card"
               >
-                Analyze Another Resume
+                Analyze another resume
               </button>
             </div>
 
             {/* Scores Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid gap-6 md:grid-cols-3">
               {/* ATS Score */}
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <BarChart3 className="w-6 h-6 text-blue-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <BarChart3 className="h-6 w-6 text-sky-500" />
                   <h3 className="text-lg font-semibold text-foreground">
-                    ATS Score
+                    ATS score
                   </h3>
                 </div>
                 <div className="relative">
-                  <div className="text-5xl font-bold mb-2">
+                  <div className="mb-2 text-5xl font-bold">
                     <span className={getScoreColor(analysisResult.ats_score)}>
-                      {analysisResult.ats_score}
+                      {Math.round(analysisResult.ats_score)}
                     </span>
-                    <span className="text-2xl text-muted-foreground">
-                      /100
-                    </span>
+                    <span className="text-2xl text-muted-foreground">/100</span>
                   </div>
-                  <div className="w-full h-2 bg-background rounded-full overflow-hidden">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-background">
                     <div
                       className={`h-full ${getScoreBgColor(
-                        analysisResult.ats_score
+                        analysisResult.ats_score,
                       )} transition-all duration-500`}
                       style={{ width: `${analysisResult.ats_score}%` }}
                     />
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    How well your resume passes ATS systems
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    How well your resume passes ATS systems.
                   </p>
                 </div>
               </div>
 
               {/* Readiness Score */}
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Target className="w-6 h-6 text-purple-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <Target className="h-6 w-6 text-purple-500" />
                   <h3 className="text-lg font-semibold text-foreground">
-                    Readiness Score
+                    Readiness score
                   </h3>
                 </div>
                 <div className="relative">
-                  <div className="text-5xl font-bold mb-2">
+                  <div className="mb-2 text-5xl font-bold">
                     <span
-                      className={getScoreColor(
-                        analysisResult.readiness_score
-                      )}
+                      className={getScoreColor(analysisResult.readiness_score)}
                     >
-                      {analysisResult.readiness_score}
+                      {Math.round(analysisResult.readiness_score)}
                     </span>
-                    <span className="text-2xl text-muted-foreground">
-                      /100
-                    </span>
+                    <span className="text-2xl text-muted-foreground">/100</span>
                   </div>
-                  <div className="w-full h-2 bg-background rounded-full overflow-hidden">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-background">
                     <div
                       className={`h-full ${getScoreBgColor(
-                        analysisResult.readiness_score
+                        analysisResult.readiness_score,
                       )} transition-all duration-500`}
-                      style={{
-                        width: `${analysisResult.readiness_score}%`,
-                      }}
+                      style={{ width: `${analysisResult.readiness_score}%` }}
                     />
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    How ready you are for this role
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    How well you match this role right now.
                   </p>
                 </div>
               </div>
 
               {/* Match Percentage */}
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <TrendingUp className="w-6 h-6 text-green-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <TrendingUp className="h-6 w-6 text-emerald-500" />
                   <h3 className="text-lg font-semibold text-foreground">
-                    Match Percentage
+                    Match percentage
                   </h3>
                 </div>
                 <div className="relative">
-                  <div className="text-5xl font-bold mb-2">
+                  <div className="mb-2 text-5xl font-bold">
                     <span
                       className={getScoreColor(
-                        analysisResult.match_percentage
+                        analysisResult.match_percentage,
                       )}
                     >
                       {Math.round(analysisResult.match_percentage)}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-background rounded-full overflow-hidden">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-background">
                     <div
                       className={`h-full ${getScoreBgColor(
-                        analysisResult.match_percentage
+                        analysisResult.match_percentage,
                       )} transition-all duration-500`}
-                      style={{
-                        width: `${analysisResult.match_percentage}%`,
-                      }}
+                      style={{ width: `${analysisResult.match_percentage}%` }}
                     />
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Overall match with job requirements
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Overall overlap with job requirements.
                   </p>
                 </div>
               </div>
@@ -339,9 +334,9 @@ export default function ResumeAtsScorePage() {
 
             {/* Strengths */}
             {analysisResult.strengths.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                   <h3 className="text-xl font-semibold text-foreground">
                     Strengths
                   </h3>
@@ -352,7 +347,7 @@ export default function ResumeAtsScorePage() {
                       key={index}
                       className="flex items-start gap-3 text-foreground"
                     >
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                       <span>{strength}</span>
                     </li>
                   ))}
@@ -362,11 +357,11 @@ export default function ResumeAtsScorePage() {
 
             {/* Gaps */}
             {analysisResult.gaps.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <XCircle className="w-6 h-6 text-red-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <XCircle className="h-6 w-6 text-red-500" />
                   <h3 className="text-xl font-semibold text-foreground">
-                    Gaps & Missing Elements
+                    Gaps & missing elements
                   </h3>
                 </div>
                 <ul className="space-y-2">
@@ -375,7 +370,7 @@ export default function ResumeAtsScorePage() {
                       key={index}
                       className="flex items-start gap-3 text-foreground"
                     >
-                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
                       <span>{gap}</span>
                     </li>
                   ))}
@@ -385,11 +380,11 @@ export default function ResumeAtsScorePage() {
 
             {/* Tips */}
             {analysisResult.tips.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Lightbulb className="w-6 h-6 text-yellow-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <Lightbulb className="h-6 w-6 text-yellow-500" />
                   <h3 className="text-xl font-semibold text-foreground">
-                    Improvement Tips
+                    Improvement tips
                   </h3>
                 </div>
                 <ul className="space-y-2">
@@ -398,7 +393,7 @@ export default function ResumeAtsScorePage() {
                       key={index}
                       className="flex items-start gap-3 text-foreground"
                     >
-                      <Lightbulb className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+                      <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" />
                       <span>{tip}</span>
                     </li>
                   ))}
@@ -408,9 +403,9 @@ export default function ResumeAtsScorePage() {
 
             {/* Recommendations */}
             {analysisResult.recommendations.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Target className="w-6 h-6 text-blue-500" />
+              <div className="rounded-xl border border-border bg-card p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <Target className="h-6 w-6 text-sky-500" />
                   <h3 className="text-xl font-semibold text-foreground">
                     Recommendations
                   </h3>
@@ -421,7 +416,7 @@ export default function ResumeAtsScorePage() {
                       key={index}
                       className="flex items-start gap-3 text-foreground"
                     >
-                      <Target className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                      <Target className="mt-0.5 h-5 w-5 shrink-0 text-sky-500" />
                       <span>{rec}</span>
                     </li>
                   ))}

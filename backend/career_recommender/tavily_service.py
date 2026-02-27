@@ -1,11 +1,11 @@
 """
-Tavily API Integration for Career Intelligence
-Scrapes web for trending careers, job market data, salary trends.
+Tavily API Integration for Career Intelligence.
+Ported from HACKSYNC and reused as-is.
 """
 
 import os
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 import httpx
 
@@ -15,13 +15,10 @@ class TavilyService:
         self.api_key = os.getenv("TAVILY_API_KEY")
         self.base_url = "https://api.tavily.com/search"
         self.cache: Dict[str, tuple[Dict, datetime]] = {}
-        self.cache_duration = timedelta(hours=6)  # Cache for 6 hours
+        self.cache_duration = timedelta(hours=6)
 
     async def search_career_trends(
-        self,
-        skills: List[str],
-        interests: List[str],
-        custom_query: Optional[str] = None,
+        self, skills: List[str], interests: List[str], custom_query: Optional[str] = None
     ) -> Dict:
         """
         Search for trending careers based on user skills and interests.
@@ -30,16 +27,16 @@ class TavilyService:
             query = custom_query
         else:
             query = (
-                "trending careers for "
-                f"{', '.join(skills[:3])} professionals in "
+                f"trending careers for {', '.join(skills[:3])} professionals in "
                 f"{', '.join(interests[:2])} industry 2026"
             )
 
         cache_key = f"trends_{hash(query)}"
 
         # Check cache
-        if cache_key in self.cache:
-            cached_data, timestamp = self.cache[cache_key]
+        cached = self.cache.get(cache_key)
+        if cached:
+            cached_data, timestamp = cached
             if datetime.utcnow() - timestamp < self.cache_duration:
                 return cached_data
 
@@ -63,13 +60,10 @@ class TavilyService:
                 )
                 response.raise_for_status()
                 data = response.json()
-
-                # Cache the result
                 self.cache[cache_key] = (data, datetime.utcnow())
                 return data
-
-        except Exception as e:
-            print(f"Tavily API Error (career trends): {str(e)}")
+        except Exception as exc:  # pragma: no cover - network fallback
+            print(f"Tavily API Error: {exc}")
             return self._get_fallback_trends()
 
     async def search_specific_career(self, career_title: str) -> Dict:
@@ -91,19 +85,15 @@ class TavilyService:
                 )
                 response.raise_for_status()
                 return response.json()
-
-        except Exception as e:
-            print(f"Tavily API Error (specific career): {str(e)}")
+        except Exception as exc:  # pragma: no cover - network fallback
+            print(f"Tavily API Error: {exc}")
             return {"results": []}
 
     async def search_skill_demand(self, skills: List[str]) -> Dict:
         """
         Check current market demand for specific skills.
         """
-        query = (
-            "job market demand for "
-            f"{', '.join(skills)} skills hiring trends 2026"
-        )
+        query = f"job market demand for {', '.join(skills)} skills hiring trends 2026"
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -118,9 +108,8 @@ class TavilyService:
                 )
                 response.raise_for_status()
                 return response.json()
-
-        except Exception as e:
-            print(f"Tavily API Error (skill demand): {str(e)}")
+        except Exception as exc:  # pragma: no cover - network fallback
+            print(f"Tavily API Error: {exc}")
             return {"results": []}
 
     async def search_industry_trends(self, industry: str) -> Dict:
@@ -142,24 +131,20 @@ class TavilyService:
                 )
                 response.raise_for_status()
                 return response.json()
-
-        except Exception as e:
-            print(f"Tavily API Error (industry trends): {str(e)}")
+        except Exception as exc:  # pragma: no cover - network fallback
+            print(f"Tavily API Error: {exc}")
             return {"results": []}
 
     def _get_fallback_trends(self) -> Dict:
         """
-        Fallback data when the Tavily API fails.
+        Fallback data when API fails.
         """
         return {
             "results": [
                 {
                     "title": "2026 Tech Career Outlook",
                     "url": "https://example.com",
-                    "content": (
-                        "AI and machine learning roles continue to see "
-                        "high demand across industries..."
-                    ),
+                    "content": "AI and machine learning roles continue to see high demand...",
                     "score": 0.8,
                 }
             ]
@@ -172,13 +157,13 @@ class TavilyService:
         results = tavily_response.get("results", [])
         references: List[Dict] = []
 
-        for idx, result in enumerate(results[:5], 1):  # Limit to 5 references
+        for idx, result in enumerate(results[:5], 1):
             references.append(
                 {
                     "id": idx,
                     "title": result.get("title", "Source"),
                     "url": result.get("url", ""),
-                    "snippet": (result.get("content", "")[:200] + "..."),
+                    "snippet": result.get("content", "")[:200] + "...",
                     "score": result.get("score", 0.0),
                 }
             )
@@ -186,6 +171,5 @@ class TavilyService:
         return references
 
 
-# Singleton instance
 tavily_service = TavilyService()
 

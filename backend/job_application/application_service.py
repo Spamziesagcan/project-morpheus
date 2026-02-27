@@ -1,3 +1,116 @@
+"""
+Business logic to generate tailored resume + cover letter for a job.
+Ported from HACKSYNC's application_service to use ProjectMorpheus GeminiService.
+"""
+
+from typing import Dict, Any
+
+from ai_resume_builder.schema import AIResumeData
+from gemini_service import gemini_service
+from logger import get_logger
+
+
+logger = get_logger(__name__)
+
+
+async def generate_tailored_application(
+    job_description: str, job_title: str, company: str, user_profile: Dict[str, Any]
+) -> Dict[str, Any]:
+  """
+  Generate a tailored resume structure and cover letter for a given JD.
+  This mirrors the HACKSYNC behavior but calls our HTTP-based GeminiService.
+  """
+  # Build a compact profile summary to feed to Gemini
+  skills = [s.get("name") if isinstance(s, dict) else s for s in user_profile.get("skills", [])]
+  experiences = user_profile.get("experiences", [])
+  projects = user_profile.get("projects", [])
+
+  profile_summary = {
+    "name": user_profile.get("name", ""),
+    "email": user_profile.get("email", ""),
+    "phone": user_profile.get("phone", ""),
+    "location": user_profile.get("location"),
+    "skills": skills,
+    "experiences": experiences,
+    "projects": projects,
+    "education": user_profile.get("education", []),
+  }
+
+  prompt = f"""
+You are an expert career coach and resume writer.
+
+JOB TITLE: {job_title}
+COMPANY: {company}
+
+JOB DESCRIPTION:
+\"\"\"{job_description}\"\"\"
+
+USER PROFILE (JSON):
+{profile_summary}
+
+TASKS:
+1. Create a JSON resume structure (AIResumeData-like) tailored to this job.
+2. Create a JSON cover letter with fields:
+   - greeting
+   - opening_paragraph
+   - body_paragraphs (array of 2-3 paragraphs)
+   - closing_paragraph
+   - signature
+
+Return ONLY valid JSON in this exact format:
+{{
+  "tailored_resume": {{}},  // AIResumeData shape
+  "cover_letter": {{
+    "greeting": "...",
+    "opening_paragraph": "...",
+    "body_paragraphs": ["..."],
+    "closing_paragraph": "...",
+    "signature": "..."
+  }}
+}}
+"""
+
+  logger.info("[JOB APPLICATION] Sending prompt to Gemini for tailored application")
+  response_json = await gemini_service.generate(
+    prompt,
+  )
+
+  candidates = response_json.get("candidates", [])
+  if not candidates:
+    raise RuntimeError("No candidates from Gemini for application generation")
+
+  parts = candidates[0].get("content", {}).get("parts", [])
+  if not parts:
+    raise RuntimeError("No content parts from Gemini for application generation")
+
+  text = (parts[0].get("text") or "").strip()
+
+  import json
+
+  # Remove markdown fences if any slipped through
+  cleaned = text
+  if cleaned.startswith("```json"):
+    cleaned = cleaned[7:]
+  elif cleaned.startswith("```"):
+    cleaned = cleaned[3:]
+  if cleaned.endswith("```"):
+    cleaned = cleaned[:-3]
+  cleaned = cleaned.strip()
+
+  try:
+    parsed = json.loads(cleaned)
+  except json.JSONDecodeError as exc:
+    logger.error("[JOB APPLICATION] Failed to parse Gemini JSON: %s", exc)
+    raise
+
+  tailored_resume_data = parsed.get("tailored_resume") or {}
+  cover_letter_data = parsed.get("cover_letter") or {}
+
+  return {
+    "tailored_resume": AIResumeData(**tailored_resume_data),
+    "cover_letter": cover_letter_data,
+  }
+
 import json
 from typing import Any, Dict, List
 
@@ -63,14 +176,14 @@ async def generate_tailored_application(
 
         # Construct the prompt
         prompt = f"""
-You are an expert career consultant and resume writer. Generate a JOB-TAILORED resume and cover letter for the following job application.
+You are an expert career consultant and resume writer. Generate a JOB-TAILORED resume and a NATURAL, HUMAN-SOUNDING COVER LETTER for the following job application.
 
-**JOB DETAILS:**
+JOB DETAILS (for context only – do not echo headings like "JOB DETAILS" in the output):
 - Position: {job_title}
 - Company: {company}
 - Job Description: {job_description}
 
-**CANDIDATE PROFILE:**
+CANDIDATE PROFILE (for context only):
 - Name: {user_name}
 - Email: {user_email}
 - Phone: {user_phone}
@@ -83,8 +196,8 @@ You are an expert career consultant and resume writer. Generate a JOB-TAILORED r
 - Projects: {json.dumps(user_projects, indent=2)}
 - Education: {json.dumps(user_education, indent=2)}
 
-**INSTRUCTIONS:**
-1. Analyze the job description carefully to identify key requirements, skills, and qualifications
+INSTRUCTIONS:
+1. Analyze the job description carefully to identify key requirements, skills, and qualifications.
 2. Create a TAILORED resume that:
    - Emphasizes relevant skills that match the job requirements
    - Rewrites experience bullet points to highlight achievements relevant to this role
@@ -92,14 +205,13 @@ You are an expert career consultant and resume writer. Generate a JOB-TAILORED r
    - Includes a compelling summary tailored to this specific position
    - Uses keywords from the job description naturally
 3. Create a professional cover letter that:
-   - Opens with enthusiasm for the specific role and company
-   - Highlights 2-3 most relevant experiences/projects that match job requirements
-   - Demonstrates understanding of company/role needs
-   - Shows personality while maintaining professionalism
-   - Includes a strong call to action
-4. Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO extra text
+   - Is written entirely in the first person ("I") from the candidate's perspective
+   - Uses clear, natural language with 3–5 paragraphs
+   - DOES NOT include headings, bullet points, or meta-instructions like "Paragraph 1:"
+   - Reads like a real letter a candidate would send to a recruiter or hiring manager
+4. Return ONLY valid JSON with NO markdown formatting, NO code blocks, NO extra explanatory text.
 
-**REQUIRED JSON STRUCTURE:**
+REQUIRED JSON STRUCTURE (FILL ALL STRINGS WITH FINAL COVER-LETTER TEXT, NOT INSTRUCTIONS):
 {{
   "tailored_resume": {{
     "personal_info": {{
@@ -111,7 +223,7 @@ You are an expert career consultant and resume writer. Generate a JOB-TAILORED r
       "github": "{github}",
       "portfolio": "{portfolio}"
     }},
-    "summary": "A compelling 2-3 sentence summary TAILORED to this specific job, highlighting most relevant qualifications",
+    "summary": "A compelling 2-3 sentence summary TAILORED to this specific job, highlighting the candidate's most relevant qualifications.",
     "skills": [
       {{
         "category": "Most Relevant Skills (from JD)",
@@ -134,21 +246,21 @@ You are an expert career consultant and resume writer. Generate a JOB-TAILORED r
         "start_date": "Mon YYYY",
         "end_date": "Mon YYYY or Present",
         "description": [
-          "TAILORED bullet point emphasizing relevant achievement with metrics",
-          "Another achievement highlighting skills from job description",
-          "Technical accomplishment relevant to the target role"
+          "TAILORED bullet point emphasizing a relevant achievement with metrics.",
+          "Another achievement highlighting skills from the job description.",
+          "Technical accomplishment relevant to the target role."
         ]
       }}
     ],
     "projects": [
       {{
         "name": "Most Relevant Project Name",
-        "description": "Description emphasizing relevance to target role",
+        "description": "Description emphasizing relevance to target role.",
         "technologies": ["tech1", "tech2", "tech3"],
         "link": "project-url",
         "highlights": [
-          "Key achievement relevant to job requirements",
-          "Impact or result that demonstrates required skills"
+          "Key achievement relevant to job requirements.",
+          "Impact or result that demonstrates required skills."
         ]
       }}
     ],
@@ -174,19 +286,19 @@ You are an expert career consultant and resume writer. Generate a JOB-TAILORED r
     "languages": ["Language 1", "Language 2"]
   }},
   "cover_letter": {{
-    "greeting": "Dear Hiring Manager," or "Dear [Name] if known,",
-    "opening_paragraph": "Express enthusiasm for the specific role at {company}. Mention how you found the position and why you're excited about it. Hook their interest.",
+    "greeting": "Dear Hiring Manager," or "Dear {{recipient_name}}," if a name is clearly implied from the context.",
+    "opening_paragraph": "A 4–6 sentence FIRST-PERSON paragraph that clearly states the role ({job_title}), the company ({company}), how the candidate found the role, and why they are genuinely excited about it. This should immediately sound like a real cover letter opening.",
     "body_paragraphs": [
-      "Paragraph 1: Highlight your most relevant experience/project that directly addresses a key job requirement. Use specific examples and metrics.",
-      "Paragraph 2: Discuss another relevant skill or achievement. Show understanding of the company's needs and how you can contribute.",
-      "Paragraph 3 (optional): Address any unique qualifications or experiences that set you apart for this specific role."
+      "Paragraph 1: A 4–6 sentence FIRST-PERSON paragraph highlighting the candidate's most relevant experience or project. It should directly address one or two of the most important job requirements using specific examples and, where possible, metrics.",
+      "Paragraph 2: A 4–6 sentence FIRST-PERSON paragraph that adds complementary strengths (e.g., collaboration, ownership, impact, leadership) and connects them to what the company needs.",
+      "Paragraph 3 (optional): A 3–5 sentence FIRST-PERSON paragraph that addresses any unique qualifications or experiences that set the candidate apart OR shows alignment with the company's mission, culture, or products."
     ],
-    "closing_paragraph": "Express enthusiasm for next steps. Mention availability for interview. Thank them for consideration.",
+    "closing_paragraph": "A 3–5 sentence FIRST-PERSON closing paragraph that thanks the reader, reiterates enthusiasm for the role at {company}, and mentions openness to further discussion or an interview.",
     "signature": "Sincerely,\\n{user_name}"
   }}
 }}
 
-CRITICAL: Return ONLY the JSON object. No markdown, no code blocks, no explanations. Just pure JSON.
+CRITICAL: Return ONLY the JSON object above. No markdown, no headings, no bullet lists, and no explanations outside the JSON.
 """
 
         # Call Gemini API via shared service

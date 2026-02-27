@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from bson import ObjectId  # type: ignore[import-untyped]
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -142,7 +142,48 @@ async def get_relevant_jobs(
         ranked_jobs = job_matcher.rank_jobs(jobs, user_skills, user_interests)
 
         filtered_jobs = [j for j in ranked_jobs if j["match_score"] >= min_match]
-        limited_jobs = filtered_jobs[:limit]
+        
+        # Ensure source diversity: include at least 5 jobs from each major source
+        # This prevents one source from dominating the results
+        source_quota = 5
+        major_sources = ["linkedin", "indeed", "zip_recruiter", "glassdoor", "internshala"]
+        
+        # Group jobs by source
+        jobs_by_source: Dict[str, List[Dict[str, Any]]] = {}
+        for job in filtered_jobs:
+            src = (job.get("source") or "other").lower()
+            if src not in jobs_by_source:
+                jobs_by_source[src] = []
+            jobs_by_source[src].append(job)
+        
+        # Build diverse result set
+        diverse_jobs: List[Dict[str, Any]] = []
+        used_job_ids = set()
+        
+        # First pass: take top jobs from each major source (up to quota)
+        for source in major_sources:
+            if source in jobs_by_source:
+                source_jobs = jobs_by_source[source]
+                taken = 0
+                for job in source_jobs:
+                    if job["job_id"] not in used_job_ids and taken < source_quota:
+                        diverse_jobs.append(job)
+                        used_job_ids.add(job["job_id"])
+                        taken += 1
+        
+        # Second pass: fill remaining slots with highest-ranked jobs (any source)
+        remaining_slots = limit - len(diverse_jobs)
+        for job in filtered_jobs:
+            if remaining_slots <= 0:
+                break
+            if job["job_id"] not in used_job_ids:
+                diverse_jobs.append(job)
+                used_job_ids.add(job["job_id"])
+                remaining_slots -= 1
+        
+        # Sort the diverse set by match score to maintain quality
+        diverse_jobs.sort(key=lambda x: -x["match_score"])
+        limited_jobs = diverse_jobs[:limit]
 
         job_matches: list[JobMatchResponse] = []
         for job_data in limited_jobs:

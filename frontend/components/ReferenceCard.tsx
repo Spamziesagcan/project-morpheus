@@ -1,6 +1,6 @@
 /**
  * Reference Card Component
- * Displays Tavily web search sources below AI responses.
+ * Displays Tavily web search sources below AI responses
  */
 
 "use client";

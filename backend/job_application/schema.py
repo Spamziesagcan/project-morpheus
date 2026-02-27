@@ -1,3 +1,75 @@
+from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel
+
+from ai_resume_builder.schema import AIResumeData
+
+
+class CoverLetterSection(BaseModel):
+    heading: str
+    content: str
+
+
+class CoverLetter(BaseModel):
+    greeting: str
+    opening_paragraph: str
+    body_paragraphs: List[str]
+    closing_paragraph: str
+    signature: str
+
+
+class ApplicationRequest(BaseModel):
+    job_id: str
+    job_title: str
+    company: str
+    job_description: str
+
+
+class ApplicationGenerateResponse(BaseModel):
+    success: bool
+    tailored_resume: Optional[AIResumeData] = None
+    cover_letter: Optional[CoverLetter] = None
+    message: str
+
+
+class SaveApplicationRequest(BaseModel):
+    job_id: str
+    job_title: str
+    company: str
+    job_description: str
+    tailored_resume: AIResumeData
+    cover_letter: CoverLetter
+
+
+class Application(BaseModel):
+    user_id: str
+    job_id: str
+    job_title: str
+    company: str
+    job_description: str
+    tailored_resume: Optional[AIResumeData] = None
+    cover_letter: Optional[CoverLetter] = None
+    created_at: datetime = datetime.utcnow()
+    updated_at: datetime = datetime.utcnow()
+    status: str = "draft"
+    application_source: Optional[str] = None
+    company_email: Optional[str] = None
+    subject: Optional[str] = None
+
+
+class ApplicationResponse(BaseModel):
+    success: bool
+    application: Optional[Application] = None
+    message: str
+
+
+class ApplicationsListResponse(BaseModel):
+    success: bool
+    applications: List[Application]
+    total: int
+    message: str
+
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime

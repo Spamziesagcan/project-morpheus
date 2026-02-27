@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Morpheus - Hackathon Template",
+  title: "SkillSphere - Hackathon Template",
   description: "A complete hackathon template with authentication and dashboard",
 };
 

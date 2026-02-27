@@ -94,4 +94,8 @@ export const API_ENDPOINTS = {
     GENERATE_REPORT: (interviewId: string) =>
       `${API_BASE_URL}/api/interview/${interviewId}/generate-report`,
   },
+  EXPLAINER: {
+    GENERATE: `${API_BASE_URL}/api/explainer/generate`,
+    CHAT: `${API_BASE_URL}/api/explainer/chat`,
+  },
 } as const;

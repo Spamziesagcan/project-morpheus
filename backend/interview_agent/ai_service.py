@@ -154,6 +154,8 @@ def evaluate_interview_transcript(
     client = _get_client()
 
     prompt = f"""You are an expert interview evaluator analyzing a voice interview transcript.
+Your scoring style is FAIR and slightly GENEROUS (not strict): give meaningful partial credit, assume good intent, and avoid harsh penalties for minor omissions, nervousness, filler words, or imperfect structure.
+Only give very low scores when the candidate is clearly incorrect, refuses to answer, or provides no relevant content.
 
 Full Interview Transcript:
 {transcript}
@@ -165,7 +167,7 @@ TASK:
 1. PARSE the transcript to identify questions and answers
 2. EXTRACT difficulty level from each question (easy/medium/hard)
 3. COUNT how many questions were answered (expected: 10 total)
-4. EVALUATE each answer with a score from 1-10
+4. EVALUATE each answer with a score from 1-10 (slightly generous rubric below)
 5. CALCULATE overall score out of 100
 
 INTERVIEW STATUS RULES:
@@ -174,6 +176,17 @@ INTERVIEW STATUS RULES:
 - If 10 questions answered -> interviewStatus: "complete"
 - Score ONLY the questions actually answered
 - Base percentage on answered questions only
+
+SCORING RUBRIC (be slightly generous):
+- 9-10: Excellent, correct, clear, good depth, good tradeoffs/examples.
+- 7-8: Strong, mostly correct, some depth, minor gaps ok.
+- 5-6: Decent attempt with partial correctness; missing details but directionally right.
+- 3-4: Weak/vague; some relevant points but mostly shallow or unclear.
+- 1-2: Incorrect or no meaningful attempt.
+
+IMPORTANT:
+- If the candidate attempts an answer and it is directionally correct, prefer 5-6 instead of 3-4.
+- Do not penalize heavily for not using perfect terminology if the idea is correct.
 
 Return a JSON object with EXACTLY this structure (no deviations):
 {{
@@ -215,6 +228,35 @@ Return a JSON object with EXACTLY this structure (no deviations):
         )
 
         report_data = json.loads(response.choices[0].message.content)
+
+        # Optional small leniency pass to reduce "over-strict" scoring.
+        # This keeps values bounded and makes overallScore consistent with per-question scores.
+        try:
+            evaluations = report_data.get("evaluations") or []
+            if isinstance(evaluations, list) and len(evaluations) > 0:
+                adjusted_scores: List[int] = []
+                for ev in evaluations:
+                    if not isinstance(ev, dict):
+                        continue
+                    raw = ev.get("score")
+                    try:
+                        s = int(raw)
+                    except Exception:
+                        continue
+
+                    # Gentle boost: +1 for any non-perfect score, capped at 10.
+                    s_adj = min(10, max(1, s + (1 if s < 10 else 0)))
+                    ev["score"] = s_adj
+                    ev["maxScore"] = 10
+                    adjusted_scores.append(s_adj)
+
+                if adjusted_scores:
+                    overall = round((sum(adjusted_scores) / (len(adjusted_scores) * 10)) * 100)
+                    report_data["overallScore"] = int(max(0, min(100, overall)))
+        except Exception:
+            # Never fail report generation due to calibration.
+            pass
+
         logger.info(
             "Interview evaluated successfully. Final score: %s",
             report_data.get("overallScore"),

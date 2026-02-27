@@ -185,12 +185,17 @@ export default function FlashcardsPage() {
     setIsFlipping(true);
 
     // Play flip sound (expects /public/sounds/flipcard-91468.mp3 to exist)
-    try {
-      const audio = new Audio("/sounds/flipcard-91468.mp3");
-      audio.volume = 0.3;
-      void audio.play();
-    } catch {
-      // ignore audio errors
+    // Guard for browser-only APIs and swallow unsupported/blocked playback errors
+    if (typeof window !== "undefined" && "Audio" in window) {
+      try {
+        const audio = new window.Audio("/sounds/flipcard-91468.mp3");
+        audio.volume = 0.3;
+        audio.play().catch(() => {
+          // Ignore async playback errors (e.g. unsupported format, autoplay policy)
+        });
+      } catch {
+        // Ignore any synchronous audio construction errors
+      }
     }
 
     setTimeout(() => {
@@ -558,24 +563,50 @@ export default function FlashcardsPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">
-            <div
-              onClick={flipCard}
-              className={`flex h-64 w-full max-w-md cursor-pointer items-center justify-center rounded-2xl border border-(--glass-border) bg-(--glass-bg) px-6 py-4 text-center text-sm text-foreground shadow-[0_0_30px_rgba(56,189,248,0.45)] backdrop-blur-xl transition hover:bg-background/80 ${
-                  isFlipping ? "opacity-80" : ""
+              <div
+                onClick={flipCard}
+                className={`relative h-64 w-full max-w-md cursor-pointer rounded-2xl border border-border bg-card px-6 py-4 text-center text-sm text-foreground shadow-[0_0_30px_rgba(56,189,248,0.45)] backdrop-blur-xl transition ${
+                  isFlipping ? "opacity-80" : "hover:bg-background/80"
                 }`}
                 style={{
-                  transformStyle: "preserve-3d",
-                  transform: showBack ? "rotateY(180deg)" : "rotateY(0deg)",
-                  transition: "transform 0.35s ease",
+                  perspective: "1200px",
                 }}
               >
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                    {showBack ? "Answer" : "Question"}
-                  </p>
-                  <p className="text-base font-medium">
-                    {showBack ? current.back : current.front}
-                  </p>
+                <div
+                  className="h-full w-full"
+                  style={{
+                    position: "relative",
+                    transformStyle: "preserve-3d",
+                    transform: showBack ? "rotateY(180deg)" : "rotateY(0deg)",
+                    transition: "transform 0.35s ease",
+                  }}
+                >
+                  {/* Front side */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center px-4"
+                    style={{
+                      backfaceVisibility: "hidden",
+                    }}
+                  >
+                    <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                      Question
+                    </p>
+                    <p className="text-base font-medium">{current.front}</p>
+                  </div>
+
+                  {/* Back side */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center px-4"
+                    style={{
+                      transform: "rotateY(180deg)",
+                      backfaceVisibility: "hidden",
+                    }}
+                  >
+                    <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                      Answer
+                    </p>
+                    <p className="text-base font-medium">{current.back}</p>
+                  </div>
                 </div>
               </div>
 

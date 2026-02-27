@@ -9,6 +9,6 @@ It provides endpoints to:
 - Generate and fetch structured evaluation reports
 
 The OpenAI and Vapi API keys are ONLY used inside this module.
-All other Morpheus features continue to use Gemini or their existing providers.
+All other SkillSphere features continue to use Gemini or their existing providers.
 """
 

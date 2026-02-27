@@ -1,7 +1,7 @@
 "use client";
 
 // Ported from HACKSYNC `dashboard/ai-resume/page.tsx` so that
-// ProjectMorpheus AI Resume Builder matches the same UX, but
+// SkillSphere AI Resume Builder matches the same UX, but
 // the preview route is `/dashboard/profile/resume-builder/preview`.
 
 import { useState, useEffect } from "react";
@@ -381,7 +381,7 @@ export default function ResumeBuilderProfilePage() {
       if (response.ok) {
         await response.json();
         showToast("AI Resume generated successfully.", "success");
-        // Navigate to preview page with resume data (Morpheus path)
+        // Navigate to preview page with resume data (SkillSphere path)
         router.push("/dashboard/profile/resume-builder/preview");
       } else {
         const error = await response.json();

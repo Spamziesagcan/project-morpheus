@@ -136,3 +136,12 @@ body {
 @utility gradient-text {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary to-primary/80 font-bold;
 }
+
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

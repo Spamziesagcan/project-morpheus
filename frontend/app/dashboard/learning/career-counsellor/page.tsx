@@ -14,6 +14,7 @@ import {
 
 import ChatMessageComponent from "@/components/ChatMessage";
 import ConversationsSidebar from "@/components/ConversationsSidebar";
+import { WhatsAppFab } from "@/components/WhatsAppFab";
 import { API_ENDPOINTS } from "@/lib/config";
 
 interface Message {
@@ -476,6 +477,9 @@ export default function CareerCounsellorPage() {
           }
         }}
       />
+
+      {/* WhatsApp FAB - only on career counselling page */}
+      <WhatsAppFab />
     </div>
   );
 }

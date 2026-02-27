@@ -12,7 +12,7 @@ interface InterviewMeta {
   candidateName: string;
   candidateEmail: string;
   vapiAssistantId: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface ReportData {
@@ -237,11 +237,14 @@ function InterviewCreator({ onComplete }: InterviewCreatorProps) {
           data?.detail || data?.message || "Failed to create interview session.",
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError(
-        err?.message ||
-          "An unexpected error occurred while connecting to the interview service.",
+        err && typeof err === "object" && "message" in err
+          ? (typeof (err as Record<string, unknown>).message === "string"
+              ? ((err as Record<string, unknown>).message as string)
+              : "An unexpected error occurred while connecting to the interview service.")
+          : "An unexpected error occurred while connecting to the interview service.",
       );
     } finally {
       setIsLoading(false);
@@ -252,7 +255,7 @@ function InterviewCreator({ onComplete }: InterviewCreatorProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">AI Mock Interview</h1>
+      <h1 className="text-2xl font-semibold text-foreground">AI Mock Interview</h1>
           <p className="text-sm text-muted-foreground">
             Spin up a voice-based interviewer from your job description and resume.
           </p>
@@ -395,26 +398,78 @@ interface VapiCallPanelProps {
   onCallEnded: () => void;
 }
 
+function extractAssistantCaption(message: unknown): string | null {
+  if (!message || typeof message !== "object") return null;
+  const m = message as Record<string, unknown>;
+
+  const getString = (obj: Record<string, unknown>, key: string): string | null => {
+    const v = obj[key];
+    return typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+  };
+
+  // Common payload shapes we might see from Vapi "message" events
+  // 1) { role: "assistant", content: "..." }
+  // 2) { message: { role: "assistant", content: "..." } }
+  // 3) { type: "transcript", role: "assistant", transcript: "..." }
+  // 4) { type: "transcript", speaker: "assistant", text: "..." }
+
+  const directRole = m.role;
+  const directSpeaker = m.speaker;
+  const directType = m.type;
+
+  if (directRole === "assistant") {
+    return getString(m, "content") || getString(m, "transcript") || getString(m, "text");
+  }
+
+  if (
+    directSpeaker === "assistant" &&
+    (directType === "transcript" || directType === "transcription")
+  ) {
+    return getString(m, "text") || getString(m, "transcript");
+  }
+
+  const nested = m.message;
+  if (nested && typeof nested === "object") {
+    const nm = nested as Record<string, unknown>;
+    if (nm.role === "assistant") {
+      return getString(nm, "content");
+    }
+  }
+
+  return null;
+}
+
 function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPanelProps) {
   const [isCalling, setIsCalling] = useState(false);
   const [status, setStatus] = useState<"idle" | "connecting" | "in-call" | "ended" | "error">(
     "idle",
   );
   const [error, setError] = useState("");
+  const [aiCaption, setAiCaption] = useState("");
+  const [aiCaptionVisible, setAiCaptionVisible] = useState(false);
   const vapiRef = useRef<Vapi | null>(null);
+  const hideCaptionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const publicKey =
     process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY ||
     (process.env.NEXT_PUBLIC_VITE_VAPI_PUBLIC_KEY as string | undefined);
+  const envError = !publicKey ? "Missing NEXT_PUBLIC_VAPI_PUBLIC_KEY in environment." : "";
 
   useEffect(() => {
-    if (!publicKey) {
-      setError("Missing NEXT_PUBLIC_VAPI_PUBLIC_KEY in environment.");
-      return;
-    }
+    if (!publicKey) return;
 
     const vapi = new Vapi(publicKey);
     vapiRef.current = vapi;
+
+    const showCaption = (text: string) => {
+      setAiCaption(text);
+      setAiCaptionVisible(true);
+      if (hideCaptionTimeoutRef.current) clearTimeout(hideCaptionTimeoutRef.current);
+      // Keep it visible for a bit; updated messages will extend the timer.
+      hideCaptionTimeoutRef.current = setTimeout(() => {
+        setAiCaptionVisible(false);
+      }, 12000);
+    };
 
     const onCallStart = () => {
       setIsCalling(true);
@@ -425,28 +480,47 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
     const onCallEnd = () => {
       setIsCalling(false);
       setStatus("ended");
+      setAiCaption("");
+      setAiCaptionVisible(false);
       onCallEnded?.();
     };
 
-    const onError = (e: any) => {
+    const onMessage = (message: unknown) => {
+      const text = extractAssistantCaption(message);
+      if (text) showCaption(text);
+    };
+
+    const onError = (e: unknown) => {
       setIsCalling(false);
       setStatus("error");
-      setError(e?.errorMsg || "Vapi call failed. Please retry.");
+      if (e && typeof e === "object" && "errorMsg" in e) {
+        const errMsg = (e as Record<string, unknown>).errorMsg;
+        setError(typeof errMsg === "string" ? errMsg : "Vapi call failed. Please retry.");
+      } else {
+        setError("Vapi call failed. Please retry.");
+      }
     };
 
     vapi.on("call-start", onCallStart);
     vapi.on("call-end", onCallEnd);
+    vapi.on("message", onMessage);
     vapi.on("error", onError);
 
     return () => {
       vapi.off("call-start", onCallStart);
       vapi.off("call-end", onCallEnd);
+      vapi.off("message", onMessage);
       vapi.off("error", onError);
+      if (hideCaptionTimeoutRef.current) clearTimeout(hideCaptionTimeoutRef.current);
       vapi.stop();
     };
   }, [publicKey, onCallEnded]);
 
   const startCall = async () => {
+    if (!publicKey) {
+      setError(envError);
+      return;
+    }
     if (!assistantId) {
       setError("Missing assistant id. Please create the interview again.");
       return;
@@ -460,9 +534,14 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
     setStatus("connecting");
     try {
       await vapiRef.current.start(assistantId);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setStatus("error");
-      setError(e?.message || "Failed to start call.");
+      if (e && typeof e === "object" && "message" in e) {
+        const msg = (e as Record<string, unknown>).message;
+        setError(typeof msg === "string" ? msg : "Failed to start call.");
+      } else {
+        setError("Failed to start call.");
+      }
     }
   };
 
@@ -489,6 +568,19 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
           </span>
         </p>
 
+        {status === "in-call" && (
+          <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-cyan-400/25 bg-foreground/[0.03] px-5 py-4 text-left backdrop-blur-md shadow-[0_0_30px_rgba(56,189,248,0.22)]">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/90">
+              Now asking
+            </p>
+            <p className="mt-1 text-sm text-foreground/90">
+              {aiCaptionVisible && aiCaption.trim()
+                ? aiCaption
+                : "Listen for the next question…"}
+            </p>
+          </div>
+        )}
+
         {!isCalling ? (
           <button
             onClick={startCall}
@@ -509,11 +601,13 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
           Status: <span className="font-medium text-foreground">{status}</span>
         </p>
 
-        {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
+        {(error || envError) && (
+          <p className="mt-3 text-xs text-red-300">{error || envError}</p>
+        )}
 
         <p className="mt-4 text-[11px] text-muted-foreground">
-          After the call ends, Morpheus will fetch the transcript from Vapi and generate
-          a detailed evaluation report automatically.
+          After the call ends, SkillSphere will fetch the transcript from Vapi and
+          generate a detailed evaluation report automatically.
         </p>
       </div>
     </div>

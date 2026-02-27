@@ -1,16 +1,1044 @@
 "use client";
+import { useState, Suspense, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { API_ENDPOINTS } from "@/lib/config";
+import ReactFlow, {
+  Node,
+  Edge,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+  Position,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import {
+  Lightbulb,
+  FileText,
+  Link as LinkIcon,
+  Upload,
+  Loader2,
+  CheckCircle,
+  Brain,
+  Workflow as WorkflowIcon,
+  MessageCircle,
+  X,
+  Send,
+  ArrowRight,
+  ClipboardList,
+  Layers,
+  Image as ImageIcon,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
-export default function ExplainerAgentPage() {
+interface Section {
+  heading: string;
+  content: string;
+  key_points: string[];
+  examples: string[];
+}
+
+interface Concept {
+  term: string;
+  definition: string;
+  analogy: string;
+}
+
+interface Workflow {
+  title: string;
+  steps: string[];
+}
+
+interface Diagram {
+  type: string;
+  description: string;
+  mermaid_code: string;
+}
+
+interface ImageSuggestion {
+  query: string;
+  context: string;
+}
+
+interface Reference {
+  title: string;
+  description: string;
+  suggested_search: string;
+}
+
+interface ExplanationData {
+  title: string;
+  summary: string;
+  sections: Section[];
+  concepts: Concept[];
+  workflows: Workflow[];
+  diagrams: Diagram[];
+  image_suggestions: ImageSuggestion[];
+  references: Reference[];
+  quiz_topics: string[];
+  flashcard_concepts: string[];
+  original_content: string;
+  content_source: string;
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+type InputMode = "text" | "pdf" | "url";
+
+// Node color palette
+const NODE_COLORS = [
+  { bg: "#fef08a", border: "#facc15", text: "#713f12" }, // yellow
+  { bg: "#86efac", border: "#4ade80", text: "#14532d" }, // green
+  { bg: "#93c5fd", border: "#3b82f6", text: "#1e3a8a" }, // blue
+  { bg: "#fda4af", border: "#f43f5e", text: "#881337" }, // rose
+  { bg: "#c4b5fd", border: "#8b5cf6", text: "#4c1d95" }, // purple
+  { bg: "#fed7aa", border: "#fb923c", text: "#7c2d12" }, // orange
+  { bg: "#a5f3fc", border: "#06b6d4", text: "#164e63" }, // cyan
+  { bg: "#fbbf24", border: "#f59e0b", text: "#78350f" }, // amber
+];
+
+// Parse Mermaid code to React Flow format
+const parseMermaidToFlow = (
+  mermaidCode: string,
+): { nodes: Node[]; edges: Edge[] } => {
+  if (!mermaidCode || typeof mermaidCode !== "string") {
+    return { nodes: [], edges: [] };
+  }
+
+  const lines = mermaidCode
+    .split("\n")
+    .filter((line) => line.trim() && !line.trim().startsWith("flowchart"));
+  const nodeMap = new Map<string, { label: string; isDiamond: boolean }>();
+  const nodeOrder: string[] = [];
+  const edgeList: { source: string; target: string; label?: string }[] = [];
+
+  // Parse nodes and edges
+  lines.forEach((line) => {
+    const trimmedLine = line.trim();
+
+    // Match diamond nodes: A{{text}}
+    const diamondMatches = [
+      ...trimmedLine.matchAll(/([A-Z]+)\{\{([^}]+)\}\}/g),
+    ];
+    diamondMatches.forEach((match) => {
+      const id = match[1];
+      const label = match[2].trim();
+      if (!nodeMap.has(id)) {
+        nodeMap.set(id, { label, isDiamond: true });
+        nodeOrder.push(id);
+      }
+    });
+
+    // Match square bracket nodes: A[text]
+    const squareMatches = [...trimmedLine.matchAll(/([A-Z]+)\[([^\]]+)\]/g)];
+    squareMatches.forEach((match) => {
+      const id = match[1];
+      const label = match[2].trim();
+      if (!nodeMap.has(id)) {
+        nodeMap.set(id, { label, isDiamond: false });
+        nodeOrder.push(id);
+      }
+    });
+
+    // Parse connections
+    let connectionMatch = trimmedLine.match(
+      /([A-Z]+)[\[{]+\s*[^\]{}]+\s*[\]}]+\s*-->\s*\|([^\|]+)\|\s*([A-Z]+)[\[{]+/,
+    );
+    if (connectionMatch) {
+      edgeList.push({
+        source: connectionMatch[1].trim(),
+        target: connectionMatch[3].trim(),
+        label: connectionMatch[2].trim(),
+      });
+      return;
+    }
+
+    connectionMatch = trimmedLine.match(
+      /([A-Z]+)[\[{]+\s*[^\]{}]+\s*[\]}]+\s*-->\s*([A-Z]+)[\[{]+/,
+    );
+    if (connectionMatch) {
+      edgeList.push({
+        source: connectionMatch[1].trim(),
+        target: connectionMatch[2].trim(),
+      });
+      return;
+    }
+
+    connectionMatch = trimmedLine.match(/([A-Z]+)\s+-->\s+([A-Z]+)[\[{]/);
+    if (connectionMatch) {
+      edgeList.push({
+        source: connectionMatch[1].trim(),
+        target: connectionMatch[2].trim(),
+      });
+      return;
+    }
+
+    connectionMatch = trimmedLine.match(/([A-Z]+)\s*-->\s*([A-Z]+)/);
+    if (connectionMatch) {
+      edgeList.push({
+        source: connectionMatch[1].trim(),
+        target: connectionMatch[2].trim(),
+      });
+    }
+  });
+
+  // Fallback: create sequential connections
+  if (edgeList.length === 0 && nodeOrder.length > 1) {
+    for (let i = 0; i < nodeOrder.length - 1; i++) {
+      edgeList.push({
+        source: nodeOrder[i],
+        target: nodeOrder[i + 1],
+      });
+    }
+  }
+
+  // Convert to React Flow nodes
+  const flowNodes: Node[] = [];
+  let colorIndex = 0;
+  let yPosition = 0;
+
+  nodeMap.forEach((data, id) => {
+    const color = NODE_COLORS[colorIndex % NODE_COLORS.length];
+    colorIndex++;
+
+    if (data.isDiamond) {
+      flowNodes.push({
+        id,
+        type: "default",
+        data: {
+          label: (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                padding: "20px",
+                fontSize: "12px",
+                fontWeight: "bold",
+              }}
+            >
+              {data.label}
+            </div>
+          ),
+        },
+        position: { x: 250, y: yPosition },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+        style: {
+          background: color.bg,
+          border: `4px solid ${color.border}`,
+          borderRadius: "0",
+          padding: "0",
+          fontWeight: "bold",
+          color: color.text,
+          fontSize: "13px",
+          boxShadow: "6px 6px 0px 0px rgba(0,0,0,0.9)",
+          clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+          width: 150,
+          height: 150,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+      });
+      yPosition += 200;
+    } else {
+      flowNodes.push({
+        id,
+        type: "default",
+        data: { label: data.label },
+        position: { x: 200, y: yPosition },
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
+        style: {
+          background: color.bg,
+          border: `4px solid ${color.border}`,
+          borderRadius: "8px",
+          padding: "16px 20px",
+          fontWeight: "bold",
+          color: color.text,
+          fontSize: "14px",
+          boxShadow: "6px 6px 0px 0px rgba(0,0,0,0.9)",
+          minWidth: 200,
+          textAlign: "center",
+          whiteSpace: "normal",
+          wordWrap: "break-word",
+        },
+      });
+      yPosition += 150;
+    }
+  });
+
+  // Convert to React Flow edges
+  const flowEdges: Edge[] = edgeList.map((edge, idx) => ({
+    id: `e${idx}`,
+    source: edge.source,
+    target: edge.target,
+    label: edge.label,
+    type: "smoothstep",
+    animated: true,
+    style: {
+      stroke: "#000",
+      strokeWidth: 3,
+    },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: "#000",
+      width: 20,
+      height: 20,
+    },
+    labelStyle: {
+      fill: "#000",
+      fontWeight: "bold",
+      fontSize: 12,
+    },
+    labelBgStyle: {
+      fill: "#fff",
+      stroke: "#000",
+      strokeWidth: 2,
+      fillOpacity: 1,
+    },
+    labelBgPadding: [6, 3] as [number, number],
+    labelBgBorderRadius: 3,
+  }));
+
+  return { nodes: flowNodes, edges: flowEdges };
+};
+
+function ExplainerPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const videoTranscript = searchParams?.get("transcript");
+
+  const [step, setStep] = useState<"input" | "settings" | "loading" | "result">(
+    videoTranscript ? "settings" : "input",
+  );
+
+  const [inputMode, setInputMode] = useState<InputMode>("text");
+  const [textInput, setTextInput] = useState(videoTranscript || "");
+  const [urlInput, setUrlInput] = useState("");
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+
+  const [complexity, setComplexity] = useState("medium");
+
+  const [explanation, setExplanation] = useState<ExplanationData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  const [expandedSections, setExpandedSections] = useState<Set<number>>(
+    new Set([0]),
+  );
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === "application/pdf") {
+      setPdfFile(file);
+    } else {
+      alert("Please select a valid PDF file");
+    }
+  };
+
+  const handleNextToSettings = () => {
+    if (inputMode === "text" && !textInput.trim()) {
+      alert("Please enter some text");
+      return;
+    }
+    if (inputMode === "url" && !urlInput.trim()) {
+      alert("Please enter a URL");
+      return;
+    }
+    if (inputMode === "pdf" && !pdfFile) {
+      alert("Please select a PDF file");
+      return;
+    }
+    setStep("settings");
+  };
+
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    setStep("loading");
+
+    try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+
+      if (inputMode === "text") {
+        formData.append("text", textInput);
+      } else if (inputMode === "url") {
+        formData.append("url", urlInput);
+      } else if (inputMode === "pdf" && pdfFile) {
+        formData.append("pdf", pdfFile);
+      }
+
+      formData.append("complexity", complexity);
+
+      const response = await fetch(API_ENDPOINTS.EXPLAINER.GENERATE, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to generate explanation");
+      }
+
+      const data = await response.json();
+      setExplanation(data);
+      setStep("result");
+    } catch (error: any) {
+      console.error("Error generating explanation:", error);
+      alert(error.message || "Failed to generate explanation");
+      setStep("settings");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || !explanation) return;
+
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: chatInput,
+    };
+
+    setChatMessages((prev) => [...prev, userMessage]);
+    setChatInput("");
+    setIsChatLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(API_ENDPOINTS.EXPLAINER.CHAT, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          explainer_content: JSON.stringify(explanation),
+          chat_history: chatMessages,
+          question: chatInput,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get response");
+      }
+
+      const data = await response.json();
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: data.answer,
+      };
+
+      setChatMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      alert("Failed to get response");
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleFlashcardsRedirect = () => {
+    if (explanation) {
+      localStorage.setItem("explainer_content", explanation.original_content);
+      router.push("/dashboard/learning/flashcards");
+    }
+  };
+
+  const toggleSection = (index: number) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedSections(newExpanded);
+  };
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-foreground">Explainer Agent</h1>
-      <div className="bg-card border border-border rounded-xl p-6">
-        <p className="text-foreground/70">
-          This will become your explainer agent. Ask questions or paste complex
-          content and get step-by-step, intuitive explanations.
-        </p>
+    <div className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
+            <Lightbulb className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">AI Explainer</h1>
+            <p className="text-sm text-muted-foreground">
+              Get comprehensive explanations with diagrams, workflows, and
+              references
+            </p>
+          </div>
+        </div>
+
+        {/* Input Step */}
+        {step === "input" && (
+          <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+            <h2 className="mb-6 text-2xl font-semibold">Select Input Source</h2>
+
+            <div className="mb-8 grid grid-cols-3 gap-4">
+              {[
+                { mode: "text" as InputMode, icon: FileText, label: "Text" },
+                { mode: "url" as InputMode, icon: LinkIcon, label: "URL" },
+                { mode: "pdf" as InputMode, icon: Upload, label: "PDF" },
+              ].map(({ mode, icon: Icon, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => setInputMode(mode)}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 px-6 py-4 font-medium transition-all ${
+                    inputMode === mode
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card hover:bg-accent"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {inputMode === "text" && (
+              <textarea
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Paste your content here..."
+                className="h-64 w-full resize-none rounded-lg border border-border bg-background px-4 py-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            )}
+
+            {inputMode === "url" && (
+              <input
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://example.com/article"
+                className="w-full rounded-lg border border-border bg-background px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            )}
+
+            {inputMode === "pdf" && (
+              <div className="rounded-lg border-2 border-dashed border-border p-8 text-center">
+                <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="pdf-upload"
+                />
+                <label
+                  htmlFor="pdf-upload"
+                  className="inline-block cursor-pointer rounded-lg border border-border bg-card px-6 py-3 font-medium transition-all hover:bg-accent"
+                >
+                  Choose PDF File
+                </label>
+                {pdfFile && (
+                  <p className="mt-4 font-medium text-green-600">
+                    ✓ {pdfFile.name}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={handleNextToSettings}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+            >
+              Next <ArrowRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Settings Step */}
+        {step === "settings" && (
+          <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+            <h2 className="mb-6 text-2xl font-semibold">Explanation Settings</h2>
+
+            <div className="mb-8">
+              <label className="mb-3 block text-lg font-medium">
+                Complexity Level
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                {["simple", "medium", "advanced"].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setComplexity(level)}
+                    className={`rounded-lg border-2 px-6 py-4 font-medium transition-all ${
+                      complexity === level
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card hover:bg-accent"
+                    }`}
+                  >
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setStep("input")}
+                className="flex-1 rounded-lg border border-border bg-card px-8 py-4 font-semibold transition-all hover:bg-accent"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleGenerate}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+              >
+                <Brain className="h-5 w-5" />
+                Generate Explanation
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Step */}
+        {step === "loading" && (
+          <div className="rounded-xl border border-border bg-card p-12 text-center shadow-sm">
+            <Loader2 className="mx-auto mb-6 h-16 w-16 animate-spin text-primary" />
+            <h2 className="mb-2 text-2xl font-semibold">
+              Generating Explanation...
+            </h2>
+            <p className="text-muted-foreground">
+              Creating diagrams, workflows, and comprehensive content
+            </p>
+          </div>
+        )}
+
+        {/* Result Step */}
+        {step === "result" && explanation && (
+          <div className="space-y-6">
+            {/* Title and Summary */}
+            <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+              <h1 className="mb-4 text-4xl font-bold">{explanation.title}</h1>
+              <p className="text-lg leading-relaxed text-muted-foreground">
+                {explanation.summary}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={handleFlashcardsRedirect}
+                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-6 py-4 font-semibold transition-all hover:bg-accent"
+              >
+                <Layers className="h-5 w-5" />
+                Create Flashcards
+              </button>
+              <button
+                onClick={() => setShowChat(true)}
+                className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-4 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Ask Questions
+              </button>
+            </div>
+
+            {/* Main Sections */}
+            {explanation.sections.map((section, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-border bg-card shadow-sm"
+              >
+                <button
+                  onClick={() => toggleSection(idx)}
+                  className="flex w-full items-center justify-between px-8 py-4 transition-colors hover:bg-accent"
+                >
+                  <h2 className="text-2xl font-semibold">{section.heading}</h2>
+                  {expandedSections.has(idx) ? (
+                    <ChevronUp className="h-6 w-6" />
+                  ) : (
+                    <ChevronDown className="h-6 w-6" />
+                  )}
+                </button>
+
+                {expandedSections.has(idx) && (
+                  <div className="border-t border-border px-8 pb-8 pt-6">
+                    <div className="prose max-w-none">
+                      <p className="whitespace-pre-wrap leading-relaxed text-foreground">
+                        {section.content}
+                      </p>
+                    </div>
+
+                    {section.key_points.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="mb-3 text-xl font-semibold">
+                          Key Points
+                        </h3>
+                        <ul className="space-y-2">
+                          {section.key_points.map((point, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-green-600" />
+                              <span className="font-medium">{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {section.examples.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="mb-3 text-xl font-semibold">Examples</h3>
+                        <div className="space-y-3">
+                          {section.examples.map((example, i) => (
+                            <div
+                              key={i}
+                              className="rounded-lg border border-border bg-accent/50 p-4"
+                            >
+                              <p className="font-medium">{example}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Concepts */}
+            {explanation.concepts.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+                  <Brain className="h-7 w-7" />
+                  Key Concepts
+                </h2>
+                <div className="grid gap-6">
+                  {explanation.concepts.map((concept, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-lg border border-border bg-accent/50 p-6"
+                    >
+                      <h3 className="mb-2 text-xl font-semibold">
+                        {concept.term}
+                      </h3>
+                      <p className="mb-3 font-medium text-muted-foreground">
+                        {concept.definition}
+                      </p>
+                      <div className="rounded-lg border border-border bg-card p-4">
+                        <p className="text-sm font-medium">
+                          <span className="text-primary">💡 Analogy:</span>{" "}
+                          {concept.analogy}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Workflows */}
+            {explanation.workflows.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+                  <WorkflowIcon className="h-7 w-7" />
+                  Workflows & Processes
+                </h2>
+                <div className="space-y-8">
+                  {explanation.workflows.map((workflow, idx) => (
+                    <div key={idx}>
+                      <h3 className="mb-4 text-xl font-semibold">
+                        {workflow.title}
+                      </h3>
+                      <div className="space-y-4">
+                        {workflow.steps.map((step, i) => (
+                          <div key={i} className="flex gap-4">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground">
+                              {i + 1}
+                            </div>
+                            <div className="flex-1 rounded-lg border border-border bg-accent/50 p-4">
+                              <p className="font-medium">{step}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Diagrams */}
+            {explanation.diagrams.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 text-2xl font-semibold">Visual Diagrams</h2>
+                <div className="space-y-6">
+                  {explanation.diagrams.map((diagram, idx) => {
+                    if (!diagram.mermaid_code) {
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-border bg-accent/50 p-6"
+                        >
+                          <div className="mb-3 flex items-center gap-3">
+                            <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+                              {diagram.type}
+                            </span>
+                            <h3 className="font-semibold">{diagram.description}</h3>
+                          </div>
+                          <p className="font-medium italic text-muted-foreground">
+                            Diagram visualization not available
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    const { nodes, edges } = parseMermaidToFlow(
+                      diagram.mermaid_code,
+                    );
+
+                    if (nodes.length === 0) {
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-border bg-accent/50 p-6"
+                        >
+                          <div className="mb-3 flex items-center gap-3">
+                            <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+                              {diagram.type}
+                            </span>
+                            <h3 className="font-semibold">{diagram.description}</h3>
+                          </div>
+                          <div className="rounded-lg border border-border bg-card p-4">
+                            <pre className="whitespace-pre-wrap font-mono text-sm">
+                              {diagram.mermaid_code}
+                            </pre>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={idx}
+                        className="overflow-hidden rounded-lg border border-border bg-accent/50"
+                      >
+                        <div className="flex items-center gap-3 border-b border-border bg-card p-4">
+                          <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+                            {diagram.type}
+                          </span>
+                          <h3 className="font-semibold">{diagram.description}</h3>
+                        </div>
+                        <div style={{ height: "500px", width: "100%" }}>
+                          <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            fitView
+                            attributionPosition="bottom-left"
+                            nodesDraggable={false}
+                            nodesConnectable={false}
+                            elementsSelectable={false}
+                          >
+                            <Background color="#888" gap={16} />
+                            <Controls />
+                            <MiniMap
+                              nodeColor={(node) => {
+                                const style = node.style as any;
+                                return style?.background || "#fff";
+                              }}
+                              maskColor="rgba(0, 0, 0, 0.1)"
+                            />
+                          </ReactFlow>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Image Suggestions */}
+            {explanation.image_suggestions.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+                  <ImageIcon className="h-7 w-7" />
+                  Recommended Visuals
+                </h2>
+                <div className="grid gap-4">
+                  {explanation.image_suggestions.map((img, idx) => (
+                    <a
+                      key={idx}
+                      href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(img.query)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 rounded-lg border border-border bg-accent/50 p-4 transition-colors hover:bg-accent"
+                    >
+                      <ImageIcon className="h-6 w-6 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">{img.query}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {img.context}
+                        </p>
+                      </div>
+                      <ArrowRight className="ml-auto h-5 w-5" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* References */}
+            {explanation.references.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
+                <h2 className="mb-6 flex items-center gap-3 text-2xl font-semibold">
+                  <BookOpen className="h-7 w-7" />
+                  Further Reading
+                </h2>
+                <div className="grid gap-4">
+                  {explanation.references.map((ref, idx) => (
+                    <a
+                      key={idx}
+                      href={`https://www.google.com/search?q=${encodeURIComponent(ref.suggested_search)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-border bg-accent/50 p-6 transition-colors hover:bg-accent"
+                    >
+                      <h3 className="mb-2 text-lg font-semibold">{ref.title}</h3>
+                      <p className="mb-3 font-medium text-muted-foreground">
+                        {ref.description}
+                      </p>
+                      <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                        Search: {ref.suggested_search}{" "}
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Chat Modal */}
+        {showChat && explanation && (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/50"
+              onClick={() => setShowChat(false)}
+            />
+
+            <div
+              className="fixed bottom-6 left-1/2 z-50 flex max-h-[70vh] w-[600px] max-w-[90vw] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+            >
+              <div className="flex items-center justify-between border-b border-border bg-primary p-4">
+                <h3 className="flex items-center gap-2 font-semibold text-primary-foreground">
+                  <MessageCircle className="h-5 w-5" />
+                  Ask Questions
+                </h3>
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="rounded p-2 transition-colors hover:bg-primary/20"
+                >
+                  <X className="h-5 w-5 text-primary-foreground" />
+                </button>
+              </div>
+
+              <div
+                className="flex-1 space-y-4 overflow-y-auto p-4"
+                style={{ minHeight: "300px", maxHeight: "calc(70vh - 150px)" }}
+              >
+                {chatMessages.length === 0 && (
+                  <div className="py-12 text-center">
+                    <MessageCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <p className="font-medium text-muted-foreground">
+                      Ask any questions about the explained content
+                    </p>
+                  </div>
+                )}
+
+                {chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`rounded-lg border border-border p-4 ${
+                      msg.role === "user"
+                        ? "ml-12 bg-primary/10"
+                        : "mr-12 bg-accent/50"
+                    }`}
+                  >
+                    <p className="mb-1 text-sm font-semibold">
+                      {msg.role === "user" ? "You" : "AI Tutor"}
+                    </p>
+                    <p className="whitespace-pre-wrap text-foreground">
+                      {msg.content}
+                    </p>
+                  </div>
+                ))}
+
+                {isChatLoading && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-accent/50 p-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="font-medium text-muted-foreground">
+                      Thinking...
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-border bg-card p-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && !isChatLoading && handleSendChat()
+                    }
+                    placeholder="Ask a question..."
+                    className="flex-1 rounded-lg border border-border bg-background px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={isChatLoading}
+                  />
+                  <button
+                    onClick={handleSendChat}
+                    disabled={isChatLoading || !chatInput.trim()}
+                    className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+export default function ExplainerAgentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin" />
+            <p className="text-lg font-semibold">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <ExplainerPageContent />
+    </Suspense>
+  );
+}

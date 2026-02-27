@@ -3,7 +3,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { ModeToggle } from "@/components/ModeToggle";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
-import { WhatsAppFab } from "@/components/WhatsAppFab";
 
 export default function DashboardLayout({
   children,
@@ -32,9 +31,6 @@ export default function DashboardLayout({
         <div className="p-8 overflow-y-auto h-[calc(100vh-4rem)]">
           {children}
         </div>
-
-        {/* Global WhatsApp floating button */}
-        <WhatsAppFab />
       </main>
     </div>
   );

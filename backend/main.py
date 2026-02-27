@@ -18,6 +18,7 @@ from job_tracker.scheduler import job_scheduler
 from resume_analyzer.routes import router as resume_analyzer_router
 from flashcards.routes import router as flashcards_router
 from interview_agent.routes import router as interview_router
+from explainer.routes import router as explainer_router
 
 logger = get_logger(__name__)
 
@@ -26,7 +27,7 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events."""
     # Startup
-    logger.info("Starting Morpheus application...")
+    logger.info("Starting SkillSphere application...")
     # Start background job scheduler for job scraping (LinkedIn + Tavily),
     # mirroring the behavior from HACKSYNC.
     try:
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application shut down")
 
 
-app = FastAPI(title="Morpheus API", lifespan=lifespan)
+app = FastAPI(title="SkillSphere API", lifespan=lifespan)
 
 # Configure CORS
 import os
@@ -79,8 +80,11 @@ app.include_router(
 app.include_router(
     interview_router, prefix="/api", tags=["Interview Agent"]
 )
+app.include_router(
+    explainer_router, prefix="/api/explainer", tags=["Explainer Agent"]
+)
 
 @app.get("/")
 def home():
     logger.info("Health check endpoint accessed")
-    return {"message": "Morpheus API Online"}
+    return {"message": "SkillSphere API Online"}

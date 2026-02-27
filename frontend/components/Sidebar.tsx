@@ -204,7 +204,7 @@ export function Sidebar() {
         </Link>
 
         {/* NAV */}
-        <nav className="flex-1 py-6 flex flex-col gap-4 px-4 relative">
+        <nav className="flex-1 py-6 flex flex-col gap-4 px-4 relative overflow-y-auto">
           {/* Dashboard (first, standalone) */}
           <div className="relative mb-2">
             <p className="px-2 mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground/40">

@@ -361,14 +361,24 @@ export default function RoadmapGeneratorPage() {
     setIsGenerating(true);
     try {
       const token = localStorage.getItem("token");
+      // Create AbortController with 3 minute timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
+      
       const res = await fetch(API_ENDPOINTS.LEARNING.GENERATE_ROADMAP, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ topic: topic.trim() }),
+        body: JSON.stringify({ 
+          topic: topic.trim(),
+          force_refresh: true // Bypass cache to get fresh resources
+        }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -393,7 +403,14 @@ export default function RoadmapGeneratorPage() {
       setStep("roadmap");
     } catch (err) {
       console.error(err);
-      const message = err instanceof Error ? err.message : "Failed to generate roadmap";
+      let message = "Failed to generate roadmap";
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          message = "Request timed out. The roadmap is too complex - try a simpler topic.";
+        } else {
+          message = err.message;
+        }
+      }
       showToast(message, "error");
     } finally {
       setIsGenerating(false);
@@ -583,7 +600,7 @@ export default function RoadmapGeneratorPage() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating roadmap...
+                    Generating roadmap (this may take 1-2 minutes)...
                   </>
                 ) : (
                   <>Generate learning path</>

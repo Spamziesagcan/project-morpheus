@@ -415,14 +415,27 @@ Return ONLY the Mermaid code, nothing else, for the topic: {topic}.
 
     async def fetch_all_resources(self, topic: str) -> List[Dict[str, Any]]:
         """
-        Fetch resources from YouTube, Udemy, Coursera and Reddit.
+        Fetch resources from YouTube, Udemy, Coursera and Reddit in parallel.
         Mirrors the intent of the `harsh` branch: multi-platform, rich thumbnails when available.
         """
-        youtube_res = self.fetch_youtube_resources(topic, max_results=8)
-        udemy_res = await self.fetch_udemy_resources(topic, max_results=6)
-        coursera_res = await self.fetch_coursera_resources(topic, max_results=6)
-        reddit_res = await self.fetch_reddit_resources(topic, max_results=4)
-        blog_res = await self.fetch_blog_resources(topic, max_results=6)
+        import asyncio
+        
+        # Run all API calls in parallel for much faster execution
+        youtube_res, udemy_res, coursera_res, reddit_res, blog_res = await asyncio.gather(
+            asyncio.to_thread(self.fetch_youtube_resources, topic, max_results=8),
+            self.fetch_udemy_resources(topic, max_results=6),
+            self.fetch_coursera_resources(topic, max_results=6),
+            self.fetch_reddit_resources(topic, max_results=4),
+            self.fetch_blog_resources(topic, max_results=6),
+            return_exceptions=True  # Don't fail entire fetch if one source fails
+        )
+        
+        # Handle any exceptions from individual fetchers
+        youtube_res = youtube_res if not isinstance(youtube_res, Exception) else []
+        udemy_res = udemy_res if not isinstance(udemy_res, Exception) else []
+        coursera_res = coursera_res if not isinstance(coursera_res, Exception) else []
+        reddit_res = reddit_res if not isinstance(reddit_res, Exception) else []
+        blog_res = blog_res if not isinstance(blog_res, Exception) else []
 
         all_res = youtube_res + udemy_res + coursera_res + reddit_res + blog_res
         logger.info(

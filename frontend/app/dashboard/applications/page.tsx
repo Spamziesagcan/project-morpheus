@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -26,7 +26,7 @@ interface Application {
   application_source?: string;
 }
 
-export default function ApplicationsPage() {
+function ApplicationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -214,3 +214,10 @@ export default function ApplicationsPage() {
   );
 }
 
+export default function ApplicationsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ApplicationsContent />
+    </Suspense>
+  );
+}

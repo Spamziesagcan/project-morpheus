@@ -42,7 +42,8 @@ async def generate_learning_roadmap(
             raise HTTPException(status_code=400, detail="Topic cannot be empty")
 
         # First, check if we already have a cached roadmap for this topic (any user).
-        cached_roadmap = await db.roadmap_cache.find_one({"topic": topic})
+        # Skip cache if force_refresh is True
+        cached_roadmap = None if request.force_refresh else await db.roadmap_cache.find_one({"topic": topic})
         if cached_roadmap:
             nodes: List[LearningNode] = [
                 LearningNode(
@@ -66,17 +67,18 @@ async def generate_learning_roadmap(
         topics: List[str] = roadmap_data["topics"]
 
         # Step 2: Fetch resources for each topic (with caching per topic)
-        nodes: List[LearningNode] = []
-        for topic_name in topics:
-            cached_topic = await db.learning_resources.find_one({"topic": topic_name})
+        # Parallelize resource fetching for all topics to improve speed
+        import asyncio
+        
+        async def fetch_topic_resources(topic_name: str) -> LearningNode:
+            # Skip per-topic cache if force_refresh is True
+            cached_topic = None if request.force_refresh else await db.learning_resources.find_one({"topic": topic_name})
 
             if cached_topic:
-                nodes.append(
-                    LearningNode(
-                        topic=cached_topic["topic"],
-                        resources=[Resource(**res) for res in cached_topic["resources"]],
-                        fetched_at=cached_topic.get("fetched_at"),
-                    )
+                return LearningNode(
+                    topic=cached_topic["topic"],
+                    resources=[Resource(**res) for res in cached_topic["resources"]],
+                    fetched_at=cached_topic.get("fetched_at"),
                 )
             else:
                 resources = await roadmap_service.fetch_all_resources(topic_name)
@@ -87,13 +89,14 @@ async def generate_learning_roadmap(
                 }
                 await db.learning_resources.insert_one(node_doc)
 
-                nodes.append(
-                    LearningNode(
-                        topic=topic_name,
-                        resources=[Resource(**res) for res in resources],
-                        fetched_at=node_doc["fetched_at"],
-                    )
+                return LearningNode(
+                    topic=topic_name,
+                    resources=[Resource(**res) for res in resources],
+                    fetched_at=node_doc["fetched_at"],
                 )
+        
+        # Fetch all topics in parallel for much faster execution
+        nodes = await asyncio.gather(*[fetch_topic_resources(topic_name) for topic_name in topics])
 
         # Cache the whole roadmap so subsequent users with the same topic
         # can reuse the same structure + resources without hitting Gemini again.
@@ -319,4 +322,66 @@ async def toggle_favorite(
         raise HTTPException(
             status_code=500, detail=f"Failed to update favorite: {exc}"
         ) from exc
+
+
+@router.delete("/clear-cache")
+async def clear_learning_cache(current_user: dict = Depends(get_current_user)):
+    """
+    Clear all cached roadmaps and learning resources.
+    Useful for forcing fresh data fetch.
+    """
+    try:
+        db = await get_database()
+        roadmap_result = await db.roadmap_cache.delete_many({})
+        resources_result = await db.learning_resources.delete_many({})
+        
+        return {
+            "success": True,
+            "roadmaps_cleared": roadmap_result.deleted_count,
+            "resources_cleared": resources_result.deleted_count,
+            "message": "Cache cleared successfully"
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear cache: {exc}"
+        ) from exc
+
+
+@router.get("/api-status")
+async def check_api_status():
+    """
+    Check which API keys are configured (without exposing the actual keys).
+    """
+    import os
+    return {
+        "tavily_configured": bool(os.getenv("TAVILY_API_KEY")),
+        "exa_configured": bool(os.getenv("EXA_API_KEY")),
+        "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+        "youtube_configured": bool(os.getenv("YOUTUBE_API_KEY")),
+        "reddit_configured": bool(os.getenv("REDDIT_CLIENT_ID") and os.getenv("REDDIT_CLIENT_SECRET")),
+    }
+
+
+@router.get("/test-apis")
+async def test_api_connections():
+    """
+    Test actual API connections to verify keys are working.
+    """
+    results = {}
+    
+    # Test Tavily
+    try:
+        test_resources = await roadmap_service.fetch_coursera_resources("python", max_results=1)
+        results["tavily"] = {"working": len(test_resources) > 0, "error": None}
+    except Exception as e:
+        results["tavily"] = {"working": False, "error": str(e)}
+    
+    # Test Exa
+    try:
+        test_resources = await roadmap_service.fetch_udemy_resources("python", max_results=1)
+        results["exa"] = {"working": len(test_resources) > 0, "error": None}
+    except Exception as e:
+        results["exa"] = {"working": False, "error": str(e)}
+    
+    return results
 

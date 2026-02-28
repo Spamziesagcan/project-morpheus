@@ -577,7 +577,7 @@ export default function FlashcardsPage() {
                   style={{
                     position: "relative",
                     transformStyle: "preserve-3d",
-                    transform: showBack ? "rotateY(180deg)" : "rotateY(0deg)",
+                    transform: showBack ? "rotateX(180deg)" : "rotateX(0deg)",
                     transition: "transform 0.35s ease",
                   }}
                 >
@@ -598,7 +598,7 @@ export default function FlashcardsPage() {
                   <div
                     className="absolute inset-0 flex flex-col items-center justify-center px-4"
                     style={{
-                      transform: "rotateY(180deg)",
+                      transform: "rotateX(180deg)",
                       backfaceVisibility: "hidden",
                     }}
                   >

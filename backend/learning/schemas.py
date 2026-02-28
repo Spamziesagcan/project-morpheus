@@ -27,6 +27,7 @@ class LearningNode(BaseModel):
 
 class GenerateRoadmapRequest(BaseModel):
     topic: str
+    force_refresh: bool = False
 
 
 class GenerateRoadmapResponse(BaseModel):

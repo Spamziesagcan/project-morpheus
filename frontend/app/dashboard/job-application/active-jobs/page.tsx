@@ -119,7 +119,7 @@ export default function ActiveJobsPage() {
 
       const data = await response.json();
       if (data.success) {
-        const saved = new Set(data.jobs.map((j: any) => j.job_id));
+        const saved = new Set<string>(data.jobs.map((j: any) => j.job_id as string));
         setSavedJobs(saved);
       }
     } catch {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Briefcase, Download, Loader2, Save, Plus } from "lucide-react";
 import html2canvas from "html2canvas";
@@ -78,7 +78,7 @@ interface CoverLetter {
   signature: string;
 }
 
-export default function CoverLetterGeneratorPage() {
+function CoverLetterContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -670,6 +670,14 @@ Nice to have:
         </div>
       )}
     </div>
+  );
+}
+
+export default function CoverLetterGeneratorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CoverLetterContent />
+    </Suspense>
   );
 }
 

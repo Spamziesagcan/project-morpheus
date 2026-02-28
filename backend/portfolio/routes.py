@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from auth.router import get_current_user
-from config import get_database
+from config import get_database, FRONTEND_URL
 from .portfolio_service import PortfolioService
 
 
@@ -64,7 +64,7 @@ async def deploy_portfolio(
         else:
             await db.deployed_portfolios.insert_one(deployment_data)
 
-        portfolio_url = f"http://localhost:3000/portfolio/{user_id}/deployed"
+        portfolio_url = f"{FRONTEND_URL}/portfolio/{user_id}/deployed"
 
         return {
             "success": True,

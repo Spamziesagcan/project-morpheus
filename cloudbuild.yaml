@@ -1,0 +1,86 @@
+steps:
+  # Build backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/morpheus-backend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/morpheus-backend:latest'
+      - './backend'
+    id: 'build-backend'
+  
+  # Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/morpheus-backend:$COMMIT_SHA']
+    id: 'push-backend'
+  
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'morpheus-backend'
+      - '--image=gcr.io/$PROJECT_ID/morpheus-backend:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-secrets=MONGO_URI=MONGO_URI:latest,SECRET_KEY=SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest'
+      - '--memory=2Gi'
+      - '--cpu=2'
+      - '--timeout=300'
+      - '--max-instances=10'
+    id: 'deploy-backend'
+    waitFor: ['push-backend']
+  
+  # Build frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/morpheus-frontend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/morpheus-frontend:latest'
+      - './frontend'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_URL=${_BACKEND_URL}'
+    id: 'build-frontend'
+  
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/morpheus-frontend:$COMMIT_SHA']
+    id: 'push-frontend'
+  
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'morpheus-frontend'
+      - '--image=gcr.io/$PROJECT_ID/morpheus-frontend:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=NEXT_PUBLIC_API_URL=${_BACKEND_URL}'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--timeout=60'
+      - '--max-instances=10'
+    id: 'deploy-frontend'
+    waitFor: ['push-frontend', 'deploy-backend']
+
+substitutions:
+  _REGION: us-central1
+  _BACKEND_URL: https://morpheus-backend-xxxxx-uc.a.run.app  # Update after first deployment
+
+images:
+  - 'gcr.io/$PROJECT_ID/morpheus-backend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/morpheus-backend:latest'
+  - 'gcr.io/$PROJECT_ID/morpheus-frontend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/morpheus-frontend:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  timeout: '1800s'

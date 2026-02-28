@@ -35,3 +35,12 @@ logs/
 # Database
 *.db
 *.sqlite
+
+# Temporary deployment documentation
+QUICK_START_GCP.md
+PORTFOLIO_DEPLOYMENT_FIX.md
+GCP_DEPLOYMENT_GUIDE.md
+DEPLOYMENT_WORKFLOW.md
+
+# Environment config files
+backend/env.yaml

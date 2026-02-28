@@ -1,5 +1,6 @@
 "use client";
 import { useState, Suspense, useCallback, useEffect } from "react";
+import { useSignLanguage } from "@/lib/sign-language-context";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_ENDPOINTS } from "@/lib/config";
 import ReactFlow, {
@@ -455,6 +456,20 @@ function ExplainerPageContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const { setSignText } = useSignLanguage();
+
+  // Sign the latest assistant reply from the chat, or fall back to the summary
+  useEffect(() => {
+    const lastAssistant = [...chatMessages].reverse().find((m) => m.role === "assistant");
+    if (lastAssistant?.content) {
+      setSignText(lastAssistant.content);
+    } else if (explanation?.summary) {
+      setSignText(explanation.summary);
+    } else {
+      setSignText("");
+    }
+  }, [chatMessages, explanation, setSignText]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

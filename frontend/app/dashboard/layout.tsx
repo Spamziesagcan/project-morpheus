@@ -3,6 +3,8 @@
 import { Sidebar } from "@/components/Sidebar";
 import { ModeToggle } from "@/components/ModeToggle";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { SignLanguageFab } from "@/components/SignLanguageFab";
+import { SignLanguageProvider } from "@/lib/sign-language-context";
 
 export default function DashboardLayout({
   children,
@@ -10,6 +12,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
+    <SignLanguageProvider>
     <div className="min-h-screen bg-background flex">
       {/* 1. FIXED SIDEBAR */}
       <Sidebar />
@@ -32,6 +35,10 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+
+      {/* Sign Language FAB – bottom-right on every dashboard page */}
+      <SignLanguageFab />
     </div>
+    </SignLanguageProvider>
   );
 }

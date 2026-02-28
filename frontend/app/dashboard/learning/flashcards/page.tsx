@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSignLanguage } from "@/lib/sign-language-context";
 import {
   Layers,
   FileText,
@@ -60,6 +61,18 @@ export default function FlashcardsPage() {
   const [showPastSets, setShowPastSets] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  const { setSignText } = useSignLanguage();
+
+  // Push current flashcard face into the sign language context whenever the card changes
+  useEffect(() => {
+    if (step === "study" && flashcards.length > 0) {
+      const card = flashcards[currentIndex];
+      setSignText(showBack ? card.back : card.front);
+    } else {
+      setSignText("");
+    }
+  }, [currentIndex, showBack, flashcards, step, setSignText]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

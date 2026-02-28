@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Vapi from "@vapi-ai/web";
 import { API_ENDPOINTS } from "@/lib/config";
-import { Loader2 } from "lucide-react";
+import { Loader2, Hand } from "lucide-react";
+import SignLanguageAvatar from "@/components/SignLanguageAvatar";
 
 type ViewState = "create" | "in-progress" | "report";
 
@@ -447,6 +448,7 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
   const [error, setError] = useState("");
   const [aiCaption, setAiCaption] = useState("");
   const [aiCaptionVisible, setAiCaptionVisible] = useState(false);
+  const [showLiveSigning, setShowLiveSigning] = useState(false);
   const vapiRef = useRef<Vapi | null>(null);
   const hideCaptionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -570,9 +572,24 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
 
         {status === "in-call" && (
           <div className="mx-auto mb-6 max-w-xl rounded-2xl border border-cyan-400/25 bg-foreground/[0.03] px-5 py-4 text-left backdrop-blur-md shadow-[0_0_30px_rgba(56,189,248,0.22)]">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/90">
-              Now asking
-            </p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-300/90">
+                Now asking
+              </p>
+              {/* Toggle live sign language */}
+              <button
+                onClick={() => setShowLiveSigning((v) => !v)}
+                title={showLiveSigning ? "Hide sign language" : "Show sign language"}
+                className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold transition-all ${
+                  showLiveSigning
+                    ? "bg-violet-500 text-white"
+                    : "bg-violet-500/10 text-violet-400 hover:bg-violet-500/20"
+                }`}
+              >
+                <Hand className="w-3 h-3" />
+                {showLiveSigning ? "Signing ON" : "Sign Live"}
+              </button>
+            </div>
             <p className="mt-1 text-sm text-foreground/90">
               {aiCaptionVisible && aiCaption.trim()
                 ? aiCaption
@@ -580,6 +597,14 @@ function VapiCallPanel({ assistantId, candidateName, onCallEnded }: VapiCallPane
             </p>
           </div>
         )}
+
+        {/* Live Sign Language Avatar – auto-signs interview questions */}
+        <SignLanguageAvatar
+          text={aiCaption}
+          isVisible={showLiveSigning && status === "in-call" && aiCaptionVisible && !!aiCaption.trim()}
+          onClose={() => setShowLiveSigning(false)}
+          autoPlay
+        />
 
         {!isCalling ? (
           <button

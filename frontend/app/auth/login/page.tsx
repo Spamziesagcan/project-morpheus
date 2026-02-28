@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Toast } from "@/components/Toast";
 import { API_ENDPOINTS } from "@/lib/config";
+import Spline from "@splinetool/react-spline";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -96,7 +97,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative bg-background transition-colors">
+    <div className="min-h-screen flex bg-background transition-colors relative">
       <Toast
         message={toast.message}
         type={toast.type}
@@ -104,27 +105,41 @@ export default function LoginPage() {
         onClose={hideToast}
         duration={toast.type === "loading" ? 0 : 3000}
       />
-      
-      <Link 
-        href="/" 
-        className="absolute top-8 left-8 flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors font-medium"
-      >
-        <ArrowLeft className="w-5 h-5" /> Back to Home
-      </Link>
 
-      <div className="absolute top-8 right-8">
-        <ModeToggle />
+      {/* ── Left: Spline 3-D scene ── */}
+      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-black">
+        <Spline
+          scene="https://prod.spline.design/xgluJ-qSWaicQqNb/scene.splinecode"
+          className="w-full h-full"
+        />
+        {/* cover the "Built with Spline" watermark */}
+        <div className="absolute bottom-0 left-0 right-0 h-14 bg-black" />
+        {/* subtle gradient fade into the right panel */}
+        <div className="absolute inset-y-0 right-0 w-24 bg-linear-to-r from-transparent to-background pointer-events-none" />
       </div>
 
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Welcome back</h1>
-        <p className="text-foreground/60 text-sm mt-2">Please enter your details</p>
-      </div>
+      {/* ── Right: login form ── */}
+      <div className="flex flex-col items-center justify-center w-full lg:w-120 shrink-0 p-8 relative">
+        <Link
+          href="/"
+          className="absolute top-8 left-8 flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors font-medium"
+        >
+          <ArrowLeft className="w-5 h-5" /> Back to Home
+        </Link>
 
-      <div className="auth-card relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-foreground/5 via-transparent to-foreground/10 pointer-events-none rounded-2xl" />
-        <div className="relative z-10">
-        <form onSubmit={handleLogin} className="space-y-4">
+        <div className="absolute top-8 right-8">
+          <ModeToggle />
+        </div>
+
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Welcome back</h1>
+          <p className="text-foreground/60 text-sm mt-2">Please enter your details</p>
+        </div>
+
+        <div className="auth-card relative overflow-hidden w-full">
+          <div className="absolute inset-0 bg-linear-to-br from-foreground/5 via-transparent to-foreground/10 pointer-events-none rounded-2xl" />
+          <div className="relative z-10">
+          <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-foreground/70 mb-1.5">EMAIL</label>
             <input 
@@ -162,9 +177,10 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-foreground/60">
-          Don't have an account? <Link href="/auth/signup" className="text-foreground font-semibold hover:underline ml-1">Sign up</Link>
-        </div>
+          <div className="mt-6 text-center text-sm text-foreground/60">
+            Don't have an account? <Link href="/auth/signup" className="text-foreground font-semibold hover:underline ml-1">Sign up</Link>
+          </div>
+          </div>
         </div>
       </div>
     </div>

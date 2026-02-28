@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import ChatMessageComponent from "@/components/ChatMessage";
+import { useSignLanguage } from "@/lib/sign-language-context";
 import ConversationsSidebar from "@/components/ConversationsSidebar";
 import { WhatsAppFab } from "@/components/WhatsAppFab";
 import { API_ENDPOINTS } from "@/lib/config";
@@ -48,6 +49,15 @@ export default function CareerCounsellorPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const { setSignText } = useSignLanguage();
+
+  // Sign the latest assistant reply once streaming completes
+  useEffect(() => {
+    if (isStreaming) return;
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (lastAssistant?.content) setSignText(lastAssistant.content);
+  }, [messages, isStreaming, setSignText]);
 
   useEffect(() => {
     const fetchUserId = async () => {

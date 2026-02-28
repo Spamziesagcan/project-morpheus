@@ -21,7 +21,13 @@ interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
-  references?: any[];
+  references?: Array<{
+    id: number;
+    title: string;
+    url: string;
+    snippet: string;
+    score: number;
+  }>;
 }
 
 export default function CareerCounsellorPage() {
@@ -40,6 +46,7 @@ export default function CareerCounsellorPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
@@ -64,8 +71,18 @@ export default function CareerCounsellorPage() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Scroll to bottom only when new messages are added during streaming
+    if (isStreaming) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isStreaming]);
+
+  // Scroll to top when conversation changes
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
+  }, [currentConversationId]);
 
   const loadConversation = async (conversationId: string) => {
     try {
@@ -76,6 +93,12 @@ export default function CareerCounsellorPage() {
         const data = await response.json();
         setCurrentConversationId(conversationId);
         setMessages(data.messages || []);
+        // Scroll to top when loading conversation
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = 0;
+          }
+        }, 100);
       }
     } catch (error) {
       console.error("Failed to load conversation:", error);
@@ -86,6 +109,12 @@ export default function CareerCounsellorPage() {
     setCurrentConversationId(null);
     setMessages([]);
     setAttachments([]);
+    // Scroll to top when starting new chat
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = 0;
+      }
+    }, 100);
   };
 
   const handleSendMessage = async () => {
@@ -122,7 +151,13 @@ export default function CareerCounsellorPage() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let streamedContent = "";
-      let streamedReferences: any[] = [];
+      let streamedReferences: Array<{
+        id: number;
+        title: string;
+        url: string;
+        snippet: string;
+        score: number;
+      }> = [];
       let newConversationId = currentConversationId;
 
       const aiMessageIndex = messages.length + 1;
@@ -136,7 +171,6 @@ export default function CareerCounsellorPage() {
         },
       ]);
 
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -287,7 +321,7 @@ export default function CareerCounsellorPage() {
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-4">
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col overflow-hidden rounded-2xl border border-border bg-card/80 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-card/80 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-border/80 bg-card/60 backdrop-blur-sm">
           <div className="flex items-center justify-between">
@@ -310,7 +344,7 @@ export default function CareerCounsellorPage() {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <div className="w-16 h-16 rounded-full bg-sky-500/10 flex items-center justify-center mb-4 shadow-[0_0_25px_rgba(56,189,248,0.8)]">
@@ -333,7 +367,7 @@ export default function CareerCounsellorPage() {
                   <button
                     key={prompt}
                     onClick={() => setInputMessage(prompt)}
-                    className="px-4 py-3 bg-background border border-border rounded-lg text-sm text-left hover:border-sky-500/60 hover:bg-background/80 transition-all shadow-sm hover:shadow-[0_0_18px_rgba(56,189,248,0.45)]"
+                    className="px-4 py-3 bg-background border-2 border-border rounded-lg text-sm text-left hover:border-sky-500/60 hover:bg-background/80 transition-all shadow-sm hover:shadow-[0_0_18px_rgba(56,189,248,0.45)] font-mono tracking-[0.05em]"
                   >
                     {prompt}
                   </button>

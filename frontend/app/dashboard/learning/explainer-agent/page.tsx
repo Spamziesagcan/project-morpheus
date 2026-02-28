@@ -1,5 +1,5 @@
 "use client";
-import { useState, Suspense, useCallback } from "react";
+import { useState, Suspense, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_ENDPOINTS } from "@/lib/config";
 import ReactFlow, {
@@ -115,20 +115,29 @@ const parseMermaidToFlow = (
     return { nodes: [], edges: [] };
   }
 
-  const lines = mermaidCode
-    .split("\n")
-    .filter((line) => line.trim() && !line.trim().startsWith("flowchart"));
+  // Clean and normalize the mermaid code
+  let cleanedCode = mermaidCode.trim();
+  // Remove flowchart declaration
+  cleanedCode = cleanedCode.replace(/^flowchart\s+[A-Z]+\s+/i, "");
+  // Split by semicolons first (for single-line formats), then by newlines
+  const statements = cleanedCode
+    .split(/[;\n]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
   const nodeMap = new Map<string, { label: string; isDiamond: boolean }>();
   const nodeOrder: string[] = [];
   const edgeList: { source: string; target: string; label?: string }[] = [];
 
-  // Parse nodes and edges
-  lines.forEach((line) => {
-    const trimmedLine = line.trim();
+  // Parse nodes and edges from each statement
+  statements.forEach((statement) => {
+    const trimmedLine = statement.trim();
+    if (!trimmedLine) return;
 
-    // Match diamond nodes: A{{text}}
+    // Match diamond nodes: A{{text}} or A{text}
     const diamondMatches = [
       ...trimmedLine.matchAll(/([A-Z]+)\{\{([^}]+)\}\}/g),
+      ...trimmedLine.matchAll(/([A-Z]+)\{([^}]+)\}/g),
     ];
     diamondMatches.forEach((match) => {
       const id = match[1];
@@ -150,7 +159,7 @@ const parseMermaidToFlow = (
       }
     });
 
-    // Parse connections
+    // Parse connections with labels: A -->|label| B or A -- label --> B
     let connectionMatch = trimmedLine.match(
       /([A-Z]+)[\[{]+\s*[^\]{}]+\s*[\]}]+\s*-->\s*\|([^\|]+)\|\s*([A-Z]+)[\[{]+/,
     );
@@ -163,6 +172,20 @@ const parseMermaidToFlow = (
       return;
     }
 
+    // Parse connections with labels: A -- label --> B
+    connectionMatch = trimmedLine.match(
+      /([A-Z]+)[\[{]+\s*[^\]{}]+\s*[\]}]+\s*--\s+([^-]+)\s+-->\s*([A-Z]+)[\[{]+/,
+    );
+    if (connectionMatch) {
+      edgeList.push({
+        source: connectionMatch[1].trim(),
+        target: connectionMatch[3].trim(),
+        label: connectionMatch[2].trim(),
+      });
+      return;
+    }
+
+    // Parse simple connections: A[text] --> B[text]
     connectionMatch = trimmedLine.match(
       /([A-Z]+)[\[{]+\s*[^\]{}]+\s*[\]}]+\s*-->\s*([A-Z]+)[\[{]+/,
     );
@@ -174,15 +197,7 @@ const parseMermaidToFlow = (
       return;
     }
 
-    connectionMatch = trimmedLine.match(/([A-Z]+)\s+-->\s+([A-Z]+)[\[{]/);
-    if (connectionMatch) {
-      edgeList.push({
-        source: connectionMatch[1].trim(),
-        target: connectionMatch[2].trim(),
-      });
-      return;
-    }
-
+    // Parse connections without brackets: A --> B
     connectionMatch = trimmedLine.match(/([A-Z]+)\s*-->\s*([A-Z]+)/);
     if (connectionMatch) {
       edgeList.push({
@@ -318,6 +333,78 @@ const parseMermaidToFlow = (
   return { nodes: flowNodes, edges: flowEdges };
 };
 
+// Component to render a single diagram with ReactFlow
+function DiagramRenderer({ 
+  diagram, 
+  nodes, 
+  edges 
+}: { 
+  diagram: Diagram; 
+  nodes: Node[]; 
+  edges: Edge[] 
+}) {
+  const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
+  const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
+
+  // Update nodes and edges when props change
+  useEffect(() => {
+    setNodes(nodes);
+    setEdges(edges);
+  }, [nodes, edges, setNodes, setEdges]);
+
+  if (nodes.length === 0) {
+    return (
+      <div className="rounded-lg border-2 border-border bg-accent/50 p-6">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+            {diagram.type}
+          </span>
+          <h3 className="font-semibold">{diagram.description}</h3>
+        </div>
+        <div className="rounded-lg border-2 border-border bg-card p-4">
+          <pre className="whitespace-pre-wrap font-mono text-sm">
+            {diagram.mermaid_code}
+          </pre>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border-2 border-border bg-accent/50">
+      <div className="flex items-center gap-3 border-b border-border bg-card p-4">
+        <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
+          {diagram.type}
+        </span>
+        <h3 className="font-semibold">{diagram.description}</h3>
+      </div>
+      <div style={{ height: "500px", width: "100%" }}>
+        <ReactFlow
+          nodes={flowNodes}
+          edges={flowEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          fitView
+          attributionPosition="bottom-left"
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+        >
+          <Background color="#888" gap={16} />
+          <Controls />
+          <MiniMap
+            nodeColor={(node) => {
+              const style = node.style as any;
+              return style?.background || "#fff";
+            }}
+            maskColor="rgba(0, 0, 0, 0.1)"
+          />
+        </ReactFlow>
+      </div>
+    </div>
+  );
+}
+
 function ExplainerPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -332,6 +419,21 @@ function ExplainerPageContent() {
   const [textInput, setTextInput] = useState(videoTranscript || "");
   const [urlInput, setUrlInput] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [wordCount, setWordCount] = useState(0);
+  const [isInputReady, setIsInputReady] = useState(false);
+
+  // Initialize word count and input ready state on mount
+  useEffect(() => {
+    if (textInput) {
+      const words = textInput.trim().split(/\s+/).filter((w) => w.length > 0);
+      setWordCount(words.length);
+      setIsInputReady(words.length > 0);
+    } else if (urlInput) {
+      setIsInputReady(urlInput.trim().length > 0 && urlInput.includes("http"));
+    } else if (pdfFile) {
+      setIsInputReady(true);
+    }
+  }, []); // Run once on mount
 
   const [complexity, setComplexity] = useState("medium");
 
@@ -358,9 +460,39 @@ function ExplainerPageContent() {
     const file = e.target.files?.[0];
     if (file && file.type === "application/pdf") {
       setPdfFile(file);
+      setIsInputReady(true);
     } else {
       alert("Please select a valid PDF file");
     }
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setTextInput(value);
+    const words = value.trim().split(/\s+/).filter((w) => w.length > 0);
+    setWordCount(words.length);
+    setIsInputReady(words.length > 0);
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUrlInput(value);
+    setIsInputReady(value.trim().length > 0 && value.includes("http"));
+  };
+
+  const handleExampleClick = (example: string) => {
+    setTextInput(example);
+    const words = example.trim().split(/\s+/).filter((w) => w.length > 0);
+    setWordCount(words.length);
+    setIsInputReady(true);
+    setInputMode("text");
+  };
+
+  const getNextButtonLabel = () => {
+    if (inputMode === "text") return "Explain this text →";
+    if (inputMode === "url") return "Fetch & Explain →";
+    if (inputMode === "pdf") return "Analyse PDF →";
+    return "Next →";
   };
 
   const handleNextToSettings = () => {
@@ -597,12 +729,17 @@ function ExplainerPageContent() {
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10">
               <Lightbulb className="h-8 w-8 text-primary" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">AI Explainer</h1>
-              <p className="text-xs text-muted-foreground font-mono tracking-[0.1em] uppercase">
-                Get comprehensive explanations with diagrams, workflows, and
-                references
-              </p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">AI Explainer</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Get comprehensive explanations with diagrams, workflows, and references
+                </p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border-2 border-primary/20">
+                <Layers className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold text-primary font-mono">Diagrams</span>
+              </div>
             </div>
           </div>
           {step !== "history" && (
@@ -631,10 +768,18 @@ function ExplainerPageContent() {
 
         {/* Input Step */}
         {step === "input" && (
-              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
-            <h2 className="mb-6 text-2xl font-bold font-mono tracking-[0.08em] uppercase">Select Input Source</h2>
+          <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+            {/* Step Indicator */}
+            <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-1">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold font-mono">1</div>
+                <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-bold font-mono">2</div>
+              </div>
+              <span className="text-xs text-muted-foreground font-mono tracking-[0.1em] uppercase ml-2">Step 1 of 2</span>
+            </div>
 
-            <div className="mb-8 grid grid-cols-3 gap-4">
+            {/* Pill-style Tab Selector */}
+            <div className="relative mb-6 inline-flex rounded-full border-2 border-border bg-background p-1">
               {[
                 { mode: "text" as InputMode, icon: FileText, label: "Text" },
                 { mode: "url" as InputMode, icon: LinkIcon, label: "URL" },
@@ -642,74 +787,155 @@ function ExplainerPageContent() {
               ].map(({ mode, icon: Icon, label }) => (
                 <button
                   key={mode}
-                  onClick={() => setInputMode(mode)}
-                  className={`flex items-center justify-center gap-2 rounded-lg border-2 px-6 py-4 font-bold transition-all font-mono tracking-[0.1em] uppercase ${
+                  onClick={() => {
+                    setInputMode(mode);
+                    setIsInputReady(false);
+                    if (mode === "text") {
+                      setWordCount(textInput.trim().split(/\s+/).filter((w) => w.length > 0).length);
+                      setIsInputReady(textInput.trim().length > 0);
+                    } else if (mode === "url") {
+                      setIsInputReady(urlInput.trim().length > 0 && urlInput.includes("http"));
+                    } else {
+                      setIsInputReady(!!pdfFile);
+                    }
+                  }}
+                  className={`relative z-10 flex items-center justify-center gap-2 rounded-full px-6 py-2.5 font-bold transition-all duration-300 font-mono tracking-[0.1em] uppercase ${
                     inputMode === mode
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-card hover:bg-accent"
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4 w-4" />
                   {label}
                 </button>
               ))}
+              {/* Sliding Active Indicator */}
+              <div
+                className={`absolute top-1 bottom-1 rounded-full bg-primary transition-all duration-300 ease-in-out ${
+                  inputMode === "text" ? "left-1 w-[calc(33.333%-0.25rem)]" :
+                  inputMode === "url" ? "left-[calc(33.333%+0.125rem)] w-[calc(33.333%-0.25rem)]" :
+                  "left-[calc(66.666%+0.25rem)] w-[calc(33.333%-0.5rem)]"
+                }`}
+              />
             </div>
 
-            {inputMode === "text" && (
-              <textarea
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                placeholder="Paste your content here..."
-                className="h-64 w-full resize-none rounded-lg border-2 border-border bg-background px-4 py-3 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            )}
+            {/* Input Fields with Animations */}
+            <div className="relative mb-4 min-h-[120px] transition-all duration-300">
+              {inputMode === "text" && (
+                <div className="animate-in slide-in-from-right-4 duration-300">
+                  <div className="relative">
+                    <textarea
+                      value={textInput}
+                      onChange={handleTextChange}
+                      placeholder="Paste your content here...&#10;&#10;Example: Newton's Laws of Motion describe the relationship between force, mass, and acceleration..."
+                      className="h-32 w-full resize-none rounded-lg border-2 border-border bg-background px-4 py-3 pr-24 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    />
+                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      {isInputReady && (
+                        <CheckCircle className="h-4 w-4 text-green-500 animate-in fade-in duration-200" />
+                      )}
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {wordCount} {wordCount === 1 ? "word" : "words"}
+                      </span>
+                    </div>
+                  </div>
+                  {textInput.trim().length === 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["Newton's Laws", "How DNS works", "Explain blockchain"].map((example) => (
+                        <button
+                          key={example}
+                          onClick={() => handleExampleClick(example === "Newton's Laws" 
+                            ? "Newton's Laws of Motion describe the relationship between force, mass, and acceleration. The first law states that an object at rest stays at rest, and an object in motion stays in motion unless acted upon by an external force."
+                            : example === "How DNS works"
+                            ? "DNS (Domain Name System) is like a phone book for the internet. When you type a website address, DNS translates the human-readable domain name into an IP address that computers can understand."
+                            : "Blockchain is a distributed ledger technology that maintains a continuously growing list of records, called blocks, which are linked and secured using cryptography. Each block contains a cryptographic hash of the previous block, a timestamp, and transaction data.")}
+                          className="px-3 py-1.5 text-xs rounded-full border-2 border-border bg-card hover:bg-accent hover:border-primary transition-all font-mono tracking-[0.05em]"
+                        >
+                          Try: {example}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {inputMode === "url" && (
-              <input
-                type="url"
-                value={urlInput}
-                onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/article"
-                className="w-full rounded-lg border-2 border-border bg-background px-4 py-3 font-mono tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            )}
+              {inputMode === "url" && (
+                <div className="animate-in slide-in-from-right-4 duration-300">
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={handleUrlChange}
+                    placeholder="https://example.com/article"
+                    className="w-full rounded-lg border-2 border-border bg-background px-4 py-3 font-mono tracking-[0.05em] focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  />
+                  {isInputReady && (
+                    <div className="mt-2 flex items-center gap-2 text-green-500">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-xs font-mono">Ready to fetch</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {inputMode === "pdf" && (
-              <div className="rounded-lg border-2 border-dashed border-border p-8 text-center">
-                <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="pdf-upload"
-                />
-                <label
-                  htmlFor="pdf-upload"
-                  className="inline-block cursor-pointer rounded-lg border-2 border-border bg-card px-6 py-3 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
-                >
-                  Choose PDF File
-                </label>
-                {pdfFile && (
-                  <p className="mt-4 font-bold text-green-600 font-mono tracking-[0.05em]">
-                    ✓ {pdfFile.name}
-                  </p>
-                )}
-              </div>
-            )}
+              {inputMode === "pdf" && (
+                <div className="animate-in slide-in-from-right-4 duration-300">
+                  <div className="rounded-lg border-2 border-dashed border-border p-8 text-center transition-all hover:border-primary">
+                    <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="pdf-upload"
+                    />
+                    <label
+                      htmlFor="pdf-upload"
+                      className="inline-block cursor-pointer rounded-lg border-2 border-border bg-card px-6 py-3 font-bold transition-all hover:bg-accent font-mono tracking-[0.12em] uppercase"
+                    >
+                      Choose PDF File
+                    </label>
+                    {pdfFile && (
+                      <div className="mt-4 flex items-center justify-center gap-2 text-green-500">
+                        <CheckCircle className="h-4 w-4" />
+                        <p className="font-bold font-mono tracking-[0.05em]">
+                          {pdfFile.name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <button
-              onClick={handleNextToSettings}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-8 py-4 font-bold text-primary-foreground transition-all hover:bg-primary/90 font-mono tracking-[0.12em] uppercase"
-            >
-              Next <ArrowRight className="h-5 w-5" />
-            </button>
+            {/* Right-aligned NEXT Button */}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={handleNextToSettings}
+                disabled={!isInputReady}
+                className={`flex items-center gap-2 rounded-lg px-6 py-3 font-bold text-primary-foreground transition-all font-mono tracking-[0.12em] uppercase ${
+                  isInputReady
+                    ? "bg-primary hover:bg-primary/90 shadow-lg"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }`}
+              >
+                {getNextButtonLabel()}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
 
         {/* Settings Step */}
         {step === "settings" && (
-              <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+          <div className="rounded-xl border-2 border-border bg-card p-8 shadow-sm">
+            {/* Step Indicator */}
+            <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-1">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold font-mono">1</div>
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold font-mono">2</div>
+              </div>
+              <span className="text-xs text-muted-foreground font-mono tracking-[0.1em] uppercase ml-2">Step 2 of 2</span>
+            </div>
             <h2 className="mb-6 text-2xl font-bold font-mono tracking-[0.08em] uppercase">Explanation Settings</h2>
 
             <div className="mb-8">
@@ -958,60 +1184,13 @@ function ExplainerPageContent() {
                       diagram.mermaid_code,
                     );
 
-                    if (nodes.length === 0) {
-                      return (
-                        <div
-                          key={idx}
-                          className="rounded-lg border-2 border-border bg-accent/50 p-6"
-                        >
-                          <div className="mb-3 flex items-center gap-3">
-                            <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
-                              {diagram.type}
-                            </span>
-                            <h3 className="font-semibold">{diagram.description}</h3>
-                          </div>
-                          <div className="rounded-lg border-2 border-border bg-card p-4">
-                            <pre className="whitespace-pre-wrap font-mono text-sm">
-                              {diagram.mermaid_code}
-                            </pre>
-                          </div>
-                        </div>
-                      );
-                    }
-
                     return (
-                      <div
+                      <DiagramRenderer
                         key={idx}
-                        className="overflow-hidden rounded-lg border-2 border-border bg-accent/50"
-                      >
-                        <div className="flex items-center gap-3 border-b border-border bg-card p-4">
-                          <span className="rounded bg-primary px-3 py-1 text-xs font-semibold uppercase text-primary-foreground">
-                            {diagram.type}
-                          </span>
-                          <h3 className="font-semibold">{diagram.description}</h3>
-                        </div>
-                        <div style={{ height: "500px", width: "100%" }}>
-                          <ReactFlow
-                            nodes={nodes}
-                            edges={edges}
-                            fitView
-                            attributionPosition="bottom-left"
-                            nodesDraggable={false}
-                            nodesConnectable={false}
-                            elementsSelectable={false}
-                          >
-                            <Background color="#888" gap={16} />
-                            <Controls />
-                            <MiniMap
-                              nodeColor={(node) => {
-                                const style = node.style as any;
-                                return style?.background || "#fff";
-                              }}
-                              maskColor="rgba(0, 0, 0, 0.1)"
-                            />
-                          </ReactFlow>
-                        </div>
-                      </div>
+                        diagram={diagram}
+                        nodes={nodes}
+                        edges={edges}
+                      />
                     );
                   })}
                 </div>

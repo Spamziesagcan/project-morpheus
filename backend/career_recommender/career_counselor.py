@@ -210,11 +210,17 @@ class CareerCounselorService:
                 "5. If suggesting careers, explain WHY they're a good fit.",
                 "6. Handle career anxiety with empathy and realistic optimism.",
                 "7. Keep responses concise but comprehensive (aim for 150-250 words).",
+                "8. IMPORTANT: Format your response using Markdown/HTML for better readability:",
+                "   - Use bullet points (• or -) for lists and key points",
+                "   - Use **bold** for emphasis on important terms",
+                "   - Use headings (##) to organize sections when appropriate",
+                "   - Structure your response with clear paragraphs and bullet points",
+                "   - Make it visually scannable and easy to read",
                 "",
                 "=== USER QUESTION ===",
                 user_message,
                 "",
-                "Now provide your counseling response:",
+                "Now provide your counseling response in well-formatted Markdown with bullet points:",
             ]
         )
 

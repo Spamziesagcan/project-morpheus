@@ -7,6 +7,8 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
 import { API_ENDPOINTS } from "@/lib/config";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 import ClassicTemplate from "@/components/templates/ClassicTemplate";
 import CoverLetterTemplate from "@/components/templates/CoverLetterTemplate";
 
@@ -79,6 +81,8 @@ interface CoverLetter {
 }
 
 function CoverLetterContent() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -383,8 +387,21 @@ Nice to have:
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="relative min-h-screen bg-background p-6">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto max-w-7xl relative z-10">
         <div className="mb-8 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-foreground font-mono tracking-[0.08em] uppercase">
           Job application

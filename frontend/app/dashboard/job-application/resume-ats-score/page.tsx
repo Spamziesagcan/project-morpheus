@@ -14,6 +14,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface AnalysisResult {
   ats_score: number;
@@ -26,6 +28,8 @@ interface AnalysisResult {
 }
 
 export default function ResumeAtsScorePage() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -111,8 +115,21 @@ export default function ResumeAtsScorePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-6xl">
+    <div className="relative min-h-screen bg-background p-6">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto max-w-6xl relative z-10">
         {/* Header */}
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-3">

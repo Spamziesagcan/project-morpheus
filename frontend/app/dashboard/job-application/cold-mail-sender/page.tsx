@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import { API_ENDPOINTS } from "@/lib/config";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface Company {
   company_name: string;
@@ -25,6 +27,8 @@ interface Company {
 }
 
 export default function ColdMailSenderPage() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const [companyType, setCompanyType] = useState("");
   const [searching, setSearching] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -312,8 +316,21 @@ export default function ColdMailSenderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="relative min-h-screen bg-background p-8">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto max-w-7xl relative z-10">
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-3">
             <div className="rounded-lg bg-foreground p-2">

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { PortfolioTemplate } from "@/components/PortfolioTemplate";
 import { API_ENDPOINTS } from "@/lib/config";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface PortfolioData {
   user_id: string;
@@ -50,6 +52,8 @@ interface PortfolioData {
 type DesignType = "terminal" | "minimal" | "professional";
 
 export default function PortfolioBuilderProfilePage() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const [loading, setLoading] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null);
@@ -150,8 +154,21 @@ export default function PortfolioBuilderProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="relative min-h-screen bg-background p-8">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-3">

@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
 import { useRouter } from "next/navigation";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface Skill {
   id: string;
@@ -93,6 +95,8 @@ interface Interest {
 }
 
 export default function ResumeBuilderProfilePage() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const router = useRouter();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -396,7 +400,21 @@ export default function ResumeBuilderProfilePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="relative min-h-screen">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="max-w-6xl mx-auto space-y-6 relative z-10">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-3 font-mono tracking-[0.08em] uppercase">
@@ -1067,6 +1085,7 @@ export default function ResumeBuilderProfilePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

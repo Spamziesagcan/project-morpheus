@@ -1,6 +1,8 @@
 "use client";
 import { useState, Suspense, useCallback, useEffect } from "react";
 import { useSignLanguage } from "@/lib/sign-language-context";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_ENDPOINTS } from "@/lib/config";
 import ReactFlow, {
@@ -735,9 +737,25 @@ function ExplainerPageContent() {
     setExpandedSections(newExpanded);
   };
 
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div className="relative min-h-screen bg-background p-6">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto max-w-7xl space-y-6 relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">

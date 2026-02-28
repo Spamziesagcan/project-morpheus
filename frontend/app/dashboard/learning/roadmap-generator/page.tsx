@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 
 import { API_ENDPOINTS } from "@/lib/config";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface Resource {
   title: string;
@@ -563,8 +565,27 @@ export default function RoadmapGeneratorPage() {
     setShowResourcesPanel(false);
   };
 
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="relative h-full">
+      {/* DotGrid background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={120}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+
+      <div className="relative z-10 h-full flex flex-col gap-4">
       {step === "input" && (
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-2xl">
@@ -577,7 +598,7 @@ export default function RoadmapGeneratorPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border-2 border-border bg-card/80 p-6 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
+            <div className="rounded-2xl border-2 border-border bg-card p-6 shadow-[0_0_40px_rgba(15,23,42,0.35)]">
               <label className="mb-3 block text-xs font-bold text-foreground font-mono tracking-[0.12em] uppercase">
                 What do you want to learn?
               </label>
@@ -990,6 +1011,7 @@ export default function RoadmapGeneratorPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

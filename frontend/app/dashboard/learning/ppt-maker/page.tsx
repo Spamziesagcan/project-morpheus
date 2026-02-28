@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
 import SlideViewer from "@/components/SlideViewer";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface Slide {
   layout: string;
@@ -310,9 +312,25 @@ export default function PptMakerPage() {
     }
   };
 
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+
   return (
-    <div className="min-h-screen bg-white dark:bg-background p-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="relative min-h-screen bg-white dark:bg-background p-8">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 relative z-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-indigo-500 shadow-[0_0_30px_rgba(56,189,248,0.6)]">

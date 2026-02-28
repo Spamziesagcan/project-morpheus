@@ -25,6 +25,8 @@ import {
 import { API_ENDPOINTS } from "@/lib/config";
 import { SkillAutocomplete } from "@/components/SkillAutocomplete";
 import { TECH_SKILLS, INTERESTS } from "@/lib/skillsSuggestions";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 interface Skill {
   id: string;
@@ -95,6 +97,8 @@ interface Interest {
 }
 
 export default function UserProfilePage() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [hasResume, setHasResume] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -468,7 +472,21 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 p-8">
+    <div className="relative min-h-screen">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="max-w-6xl mx-auto space-y-6 p-8 relative z-10">
       <div>
         <h1 className="text-3xl font-bold text-black dark:text-white">
           Your Profile{fullName ? `, ${fullName}` : ""}
@@ -1179,6 +1197,7 @@ export default function UserProfilePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

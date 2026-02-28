@@ -15,6 +15,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { API_ENDPOINTS } from "@/lib/config";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 type InputMode = "text" | "pdf" | "url";
 
@@ -699,9 +701,25 @@ export default function FlashcardsPage() {
     );
   };
 
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-5xl space-y-8">
+    <div className="relative min-h-screen bg-background p-6">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto max-w-5xl space-y-8 relative z-10">
         {step === "input" && renderInput()}
         {step === "settings" && renderSettings()}
         {step === "study" && renderStudy()}

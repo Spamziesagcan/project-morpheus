@@ -84,6 +84,13 @@ const menuItems: {
   },
   {
     section: "Learning",
+    name: "Career Counsellor",
+    href: "/dashboard/learning/career-counsellor",
+    icon: "career",
+    shortText: "Guidance & advice",
+  },
+  {
+    section: "Learning",
     name: "PPT Maker",
     href: "/dashboard/learning/ppt-maker",
     icon: "ppt",
@@ -103,21 +110,14 @@ const menuItems: {
     icon: "explainer",
     shortText: "Concept breakdowns",
   },
-  {
-    section: "Learning",
-    name: "Career Counsellor",
-    href: "/dashboard/learning/career-counsellor",
-    icon: "career",
-    shortText: "Guidance & advice",
-  },
 
   // Job Application
   {
     section: "Job Application",
-    name: "Resume ATS Score",
-    href: "/dashboard/job-application/resume-ats-score",
-    icon: "ats",
-    shortText: "Beat the bots",
+    name: "Active Jobs",
+    href: "/dashboard/job-application/active-jobs",
+    icon: "jobs",
+    shortText: "Open roles",
   },
   {
     section: "Job Application",
@@ -128,10 +128,10 @@ const menuItems: {
   },
   {
     section: "Job Application",
-    name: "AI Mock Interview",
-    href: "/dashboard/job-application/mock-interview",
-    icon: "interview",
-    shortText: "Practice questions",
+    name: "Resume ATS Score",
+    href: "/dashboard/job-application/resume-ats-score",
+    icon: "ats",
+    shortText: "Beat the bots",
   },
   {
     section: "Job Application",
@@ -142,10 +142,10 @@ const menuItems: {
   },
   {
     section: "Job Application",
-    name: "Active Jobs",
-    href: "/dashboard/job-application/active-jobs",
-    icon: "jobs",
-    shortText: "Open roles",
+    name: "AI Mock Interview",
+    href: "/dashboard/job-application/mock-interview",
+    icon: "interview",
+    shortText: "Practice questions",
   },
 ];
 

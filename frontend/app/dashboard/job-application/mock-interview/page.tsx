@@ -5,6 +5,8 @@ import Vapi from "@vapi-ai/web";
 import { API_ENDPOINTS } from "@/lib/config";
 import { Loader2, Hand } from "lucide-react";
 import SignLanguageAvatar from "@/components/SignLanguageAvatar";
+import DotGrid from "@/components/DotGrid";
+import { useTheme } from "next-themes";
 
 type ViewState = "create" | "in-progress" | "report";
 
@@ -40,6 +42,8 @@ interface ReportData {
 }
 
 export default function MockInterviewPage() {
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
   const [view, setView] = useState<ViewState>("create");
   const [interviewData, setInterviewData] = useState<InterviewMeta | ReportData | null>(
     null,
@@ -125,8 +129,21 @@ export default function MockInterviewPage() {
   }, [view, interviewData]);
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-5xl space-y-8">
+    <div className="relative min-h-screen bg-background p-6">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <DotGrid
+          dotSize={5}
+          gap={15}
+          baseColor={isLight ? "#e8e8e8" : "#271E37"}
+          activeColor="#5227FF"
+          proximity={220}
+          shockRadius={250}
+          shockStrength={5}
+          resistance={750}
+          returnDuration={1.5}
+        />
+      </div>
+      <div className="mx-auto max-w-5xl space-y-8 relative z-10">
         {view === "create" && <InterviewCreator onComplete={handleInterviewCreated} />}
 
         {view === "in-progress" &&
